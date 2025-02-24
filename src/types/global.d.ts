@@ -39,15 +39,22 @@ declare global {
       localize?: boolean,
     ) => Promise<string>;
     extensionSettings: {
-      connectionManager: {
+      connectionManager?: {
         profiles: ConnectionProfile[];
       };
+      translate?: {
+        target_language: string;
+      };
       translateViaLlm: {
-        // new
         selectedProfile: string;
+        template: string;
       };
     };
     saveSettingsDebounced: () => void;
+    chatCompletionSettings: any;
+    powerUserSettings: {
+      request_token_probabilities: boolean;
+    };
   }
 
   const SillyTavern: {

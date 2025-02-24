@@ -1,8 +1,17 @@
 // @ts-ignore
-import { Popup as STPopup } from '../../../../popup.js';
+import { Popup } from '../../../../popup.js';
 
-export const extensionName = 'SillyTavern-Character-Creator';
-export const extensionVersion = '0.1.0';
+// @ts-ignore
+import { chat_completion_sources } from '../../../../openai.js';
+
+// @ts-ignore
+import { name1, name2, CONNECT_API_MAP, extractMessageFromData } from '../../../../../script.js';
+
+// @ts-ignore
+import { getPresetManager } from '../../../../preset-manager.js';
+
+export const extensionName = 'SillyTavern-LLM-Translator';
+export const context = SillyTavern.getContext();
 
 /**
  * Sends an echo message using the SlashCommandParser's echo command.
@@ -20,4 +29,68 @@ export async function st_popupConfirm(header: string, text?: string): Promise<bo
   return await SillyTavern.getContext().Popup.show.confirm(header, text);
 }
 
-export { STPopup };
+export function chatCompletionSourceToModel(source: string) {
+  switch (source) {
+    case chat_completion_sources.CLAUDE:
+      return context.chatCompletionSettings.claude_model;
+    case chat_completion_sources.OPENAI:
+      return context.chatCompletionSettings.openai_model;
+    case chat_completion_sources.WINDOWAI:
+      return context.chatCompletionSettings.windowai_model;
+    case chat_completion_sources.SCALE:
+      return '';
+    case chat_completion_sources.MAKERSUITE:
+      return context.chatCompletionSettings.google_model;
+    case chat_completion_sources.OPENROUTER:
+      return context.chatCompletionSettings.openrouter_model !== 'OR_Website'
+        ? context.chatCompletionSettings.openrouter_model
+        : null;
+    case chat_completion_sources.AI21:
+      return context.chatCompletionSettings.ai21_model;
+    case chat_completion_sources.MISTRALAI:
+      return context.chatCompletionSettings.mistralai_model;
+    case chat_completion_sources.CUSTOM:
+      return context.chatCompletionSettings.custom_model;
+    case chat_completion_sources.COHERE:
+      return context.chatCompletionSettings.cohere_model;
+    case chat_completion_sources.PERPLEXITY:
+      return context.chatCompletionSettings.perplexity_model;
+    case chat_completion_sources.GROQ:
+      return context.chatCompletionSettings.groq_model;
+    case chat_completion_sources.ZEROONEAI:
+      return context.chatCompletionSettings.zerooneai_model;
+    case chat_completion_sources.BLOCKENTROPY:
+      return context.chatCompletionSettings.blockentropy_model;
+    case chat_completion_sources.NANOGPT:
+      return context.chatCompletionSettings.nanogpt_model;
+    case chat_completion_sources.DEEPSEEK:
+      return context.chatCompletionSettings.deepseek_model;
+    default:
+      throw new Error(`Unknown chat completion source: ${context.chatCompletionSettings.chat_completion_source}`);
+  }
+}
+
+export function st_getPresetManager(apiId = ''): {
+  getPresetList(): {
+    presets: any[];
+    preset_names: Record<string, number>;
+  };
+} {
+  return getPresetManager(apiId);
+}
+
+export function st_getConnectApiMap(): Record<
+  string,
+  {
+    selected: string;
+    source?: string;
+  }
+> {
+  return CONNECT_API_MAP;
+}
+
+export function st_extractMessageFromData(data: object): string {
+  return extractMessageFromData(data);
+}
+
+export { Popup, name1, name2, chat_completion_sources };
