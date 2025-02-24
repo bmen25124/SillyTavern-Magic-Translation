@@ -11,6 +11,7 @@ import {
   extractMessageFromData,
   amount_gen,
   max_context,
+  updateMessageBlock,
   // @ts-ignore
 } from '../../../../../script.js';
 
@@ -105,8 +106,8 @@ export function st_getConnectApiMap(): Record<
   return CONNECT_API_MAP;
 }
 
-export function st_extractMessageFromData(data: object): string {
-  return extractMessageFromData(data);
+export function st_extractMessageFromData(data: object, activeApi?: string): string {
+  return extractMessageFromData(data, activeApi);
 }
 
 export function st_getLogprobsNumber(): number {
@@ -119,6 +120,10 @@ export function st_getTextGenServer(type?: string): string {
 
 export function st_replaceMacrosInList(str: string): string {
   return replaceMacrosInList(str);
+}
+
+export function st_updateMessageBlock(messageId: number, message: object, { rerenderMessage = true } = {}): void {
+  updateMessageBlock(messageId, message, { rerenderMessage });
 }
 
 export { Popup, name1, name2, chat_completion_sources, textgen_types, amount_gen, max_context };

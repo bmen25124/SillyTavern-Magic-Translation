@@ -55,6 +55,15 @@ declare global {
     powerUserSettings: {
       request_token_probabilities: boolean;
     };
+    chat: Record<
+      number,
+      {
+        mes: string;
+        extra?: {
+          display_text?: string;
+        };
+      }
+    >;
   }
 
   const SillyTavern: {

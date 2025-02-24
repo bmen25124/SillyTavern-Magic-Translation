@@ -1,5 +1,5 @@
 import {
-  amount_gen,
+  // amount_gen,
   chat_completion_sources,
   chatCompletionSourceToModel,
   context,
@@ -14,6 +14,7 @@ import {
   st_getPresetManager,
   st_getTextGenServer,
   st_replaceMacrosInList,
+  st_updateMessageBlock,
   textgen_types,
 } from './config';
 
@@ -84,24 +85,54 @@ async function initUI() {
     `<div title="Translate via LLM" class="mes_button mes_translate_via_llm_button fa-solid fa-globe interactable" tabindex="0"></div>`,
   );
   $('#message_template .mes_buttons .extraMesButtons').prepend(showTranslateButton);
+
+  let generating = false;
   $(document).on('click', '.mes_translate_via_llm_button', async function () {
-    const messageBlock = $(this).closest('.mes');
-    const messageId = Number(messageBlock.attr('mesid'));
-    const result = getGeneratePayload(
-      context.extensionSettings.translateViaLlm.selectedProfile,
-      messageBlock.find('.mes_text').text(),
-    );
-    if (!result) {
+    if (generating) {
+      st_echo('error', 'Translation is already in progress');
       return;
     }
-    console.debug(result);
+    generating = true;
+    try {
+      const messageBlock = $(this).closest('.mes');
+      const messageId = Number(messageBlock.attr('mesid'));
+      const message = context.chat[messageId];
+      if (!message) {
+        st_echo('error', `Could not find message with id ${messageId}`);
+        return;
+      }
+      if (message?.extra?.display_text) {
+        delete message.extra.display_text;
+        st_updateMessageBlock(messageId, message);
+        return;
+      }
+      const result = getGeneratePayload(context.extensionSettings.translateViaLlm.selectedProfile, message.mes);
+      if (!result) {
+        return;
+      }
+      console.debug(result);
 
-    const response = await sendGenerateRequest(result.body, result.url);
-    console.debug(response);
+      const response = await sendGenerateRequest(result.body, result.url, result.type);
+      console.debug(response);
+
+      if (typeof message.extra !== 'object') {
+        message.extra = {};
+      }
+
+      message.extra.display_text = response;
+      st_updateMessageBlock(messageId, message);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      generating = false;
+    }
   });
 }
 
-function getGeneratePayload(profileId: string, prompt: string): null | { body: any; url: string } {
+function getGeneratePayload(
+  profileId: string,
+  prompt: string,
+): null | { body: any; url: string; type: 'openai' | 'textgenerationwebui' } {
   const profile = context.extensionSettings.connectionManager!.profiles.find((p) => p.id === profileId);
   if (!profile) {
     st_echo('error', `Could not find profile with id ${profileId}`);
@@ -158,11 +189,13 @@ function getGeneratePayload(profileId: string, prompt: string): null | { body: a
     return {
       body: getOpenAIData(selectedApiMap, replacedPrompt, preset),
       url: '/api/backends/chat-completions/generate',
+      type: selectedApiMap.selected,
     };
   } else {
     return {
       body: getTextGenData(selectedApiMap.type, replacedPrompt, preset, profile),
       url: '/api/backends/text-completions/generate',
+      type: selectedApiMap.selected,
     };
   }
 }
@@ -170,7 +203,7 @@ function getGeneratePayload(profileId: string, prompt: string): null | { body: a
 function getOpenAIData(selectedApiMap: { selected: string; source?: string }, replacedPrompt: string, preset: any) {
   const chat_completion_source = selectedApiMap.source || chat_completion_sources.OPENAI;
   const isClaude = chat_completion_source == chat_completion_sources.CLAUDE;
-  const isOpenRouter = chat_completion_source == chat_completion_sources.textgen_types.OPENROUTER;
+  const isOpenRouter = chat_completion_source == chat_completion_sources.OPENROUTER;
   const isScale = chat_completion_source == chat_completion_sources.SCALE;
   const isGoogle = chat_completion_source == chat_completion_sources.MAKERSUITE;
   const isOAI = chat_completion_source == chat_completion_sources.OPENAI;
@@ -355,7 +388,8 @@ function getTextGenData(type: string | undefined, replacedPrompt: string, preset
 
   const canMultiSwipe = true;
   const dynatemp = document.getElementById('dynatemp_block_ooba')?.dataset?.tgType?.includes(type);
-  const maxTokens = preset.genamt ?? amount_gen;
+  // const maxTokens = preset.genamt ?? amount_gen;
+  const maxTokens = 0;
 
   let params: any;
   params = {
@@ -555,7 +589,7 @@ function getTextGenData(type: string | undefined, replacedPrompt: string, preset
   return params;
 }
 
-async function sendGenerateRequest(generate_data: any, url: string) {
+async function sendGenerateRequest(generate_data: any, url: string, activeApi: 'openai' | 'textgenerationwebui') {
   const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(generate_data),
@@ -575,7 +609,7 @@ async function sendGenerateRequest(generate_data: any, url: string) {
     throw new Error(message);
   }
 
-  return st_extractMessageFromData(data);
+  return st_extractMessageFromData(data, activeApi);
 }
 
 initUI();
