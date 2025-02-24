@@ -1,14 +1,20 @@
 import {
+  amount_gen,
   chat_completion_sources,
   chatCompletionSourceToModel,
   context,
   extensionName,
+  max_context,
   name1,
   name2,
   st_echo,
   st_extractMessageFromData,
   st_getConnectApiMap,
+  st_getLogprobsNumber,
   st_getPresetManager,
+  st_getTextGenServer,
+  st_replaceMacrosInList,
+  textgen_types,
 } from './config';
 
 async function initUI() {
@@ -81,21 +87,21 @@ async function initUI() {
   $(document).on('click', '.mes_translate_via_llm_button', async function () {
     const messageBlock = $(this).closest('.mes');
     const messageId = Number(messageBlock.attr('mesid'));
-    const body = getChatCompletionBody(
+    const result = getGeneratePayload(
       context.extensionSettings.translateViaLlm.selectedProfile,
       messageBlock.find('.mes_text').text(),
     );
-    if (!body) {
+    if (!result) {
       return;
     }
-    console.debug(body);
+    console.debug(result);
 
-    const response = await sendOpenAIRequest(body);
+    const response = await sendGenerateRequest(result.body, result.url);
     console.debug(response);
   });
 }
 
-function getChatCompletionBody(profileId: string, prompt: string) {
+function getGeneratePayload(profileId: string, prompt: string): null | { body: any; url: string } {
   const profile = context.extensionSettings.connectionManager!.profiles.find((p) => p.id === profileId);
   if (!profile) {
     st_echo('error', `Could not find profile with id ${profileId}`);
@@ -125,26 +131,46 @@ function getChatCompletionBody(profileId: string, prompt: string) {
 
   console.debug(replacedPrompt);
 
-  const presetList = st_getPresetManager('openai').getPresetList();
-  const preset = structuredClone(presetList.presets[presetList.preset_names[profile.preset]]);
-  if (!preset) {
-    st_echo('error', `Could not find preset ${profile.preset}`);
-    return null;
-  }
-
   const selectedApiMap = st_getConnectApiMap()[profile.api];
   if (!selectedApiMap) {
     st_echo('error', `Could not find API ${profile.api}`);
     return null;
   }
+  if (!(selectedApiMap.selected === 'openai' || selectedApiMap.selected === 'textgenerationwebui')) {
+    st_echo('error', `API ${profile.api} is not supported`);
+    return null;
+  }
 
-  return selectedApiMap.selected === 'openai' ? getOpenAIData(selectedApiMap, replacedPrompt, preset) : null;
+  const presetList = st_getPresetManager(selectedApiMap.selected).getPresetList();
+  const preset = structuredClone(
+    selectedApiMap.selected === 'openai'
+      ? // @ts-ignore
+        presetList.presets[presetList.preset_names[profile.preset]]
+      : // @ts-ignore
+        presetList.presets[presetList.preset_names.indexOf(profile.preset)],
+  );
+  if (!preset) {
+    st_echo('error', `Could not find preset ${profile.preset}`);
+    return null;
+  }
+
+  if (selectedApiMap.selected === 'openai') {
+    return {
+      body: getOpenAIData(selectedApiMap, replacedPrompt, preset),
+      url: '/api/backends/chat-completions/generate',
+    };
+  } else {
+    return {
+      body: getTextGenData(selectedApiMap.type, replacedPrompt, preset, profile),
+      url: '/api/backends/text-completions/generate',
+    };
+  }
 }
 
 function getOpenAIData(selectedApiMap: { selected: string; source?: string }, replacedPrompt: string, preset: any) {
   const chat_completion_source = selectedApiMap.source || chat_completion_sources.OPENAI;
   const isClaude = chat_completion_source == chat_completion_sources.CLAUDE;
-  const isOpenRouter = chat_completion_source == chat_completion_sources.OPENROUTER;
+  const isOpenRouter = chat_completion_source == chat_completion_sources.textgen_types.OPENROUTER;
   const isScale = chat_completion_source == chat_completion_sources.SCALE;
   const isGoogle = chat_completion_source == chat_completion_sources.MAKERSUITE;
   const isOAI = chat_completion_source == chat_completion_sources.OPENAI;
@@ -317,12 +343,224 @@ function getOpenAIData(selectedApiMap: { selected: string; source?: string }, re
   return generate_data;
 }
 
-async function sendOpenAIRequest(generate_data: any) {
-  const generate_url = '/api/backends/chat-completions/generate';
-  const response = await fetch(generate_url, {
+function getTextGenData(type: string | undefined, replacedPrompt: string, preset: any, profile: ConnectionProfile) {
+  if (!profile.model) {
+    st_echo('error', 'Select a connection profile that has a model');
+    return null;
+  }
+  if (!type) {
+    st_echo('error', 'Select a connection profile that has a type');
+    return null;
+  }
+
+  const canMultiSwipe = true;
+  const dynatemp = document.getElementById('dynatemp_block_ooba')?.dataset?.tgType?.includes(type);
+  const maxTokens = preset.genamt ?? amount_gen;
+
+  let params: any;
+  params = {
+    stream: false,
+    prompt: replacedPrompt,
+    model: profile.model,
+    max_new_tokens: maxTokens,
+    max_tokens: maxTokens,
+    logprobs: context.powerUserSettings.request_token_probabilities ? st_getLogprobsNumber() : undefined,
+    temperature: dynatemp ? (preset.min_temp + preset.max_temp) / 2 : preset.temp,
+    top_p: preset.top_p,
+    typical_p: preset.typical_p,
+    typical: preset.typical_p,
+    sampler_seed: preset.seed >= 0 ? preset.seed : undefined,
+    min_p: preset.min_p,
+    repetition_penalty: preset.rep_pen,
+    frequency_penalty: preset.freq_pen,
+    presence_penalty: preset.presence_pen,
+    top_k: preset.top_k,
+    skew: preset.skew,
+    min_length: type === textgen_types.OOBA ? preset.min_length : undefined,
+    minimum_message_content_tokens: type === textgen_types.DREAMGEN ? preset.min_length : undefined,
+    min_tokens: preset.min_length,
+    num_beams: type === textgen_types.OOBA ? preset.num_beams : undefined,
+    length_penalty: type === textgen_types.OOBA ? preset.length_penalty : undefined,
+    early_stopping: type === textgen_types.OOBA ? preset.early_stopping : undefined,
+    add_bos_token: preset.add_bos_token,
+    dynamic_temperature: dynatemp ? true : undefined,
+    dynatemp_low: dynatemp ? preset.min_temp : undefined,
+    dynatemp_high: dynatemp ? preset.max_temp : undefined,
+    dynatemp_range: dynatemp ? (preset.max_temp - preset.min_temp) / 2 : undefined,
+    dynatemp_exponent: dynatemp ? preset.dynatemp_exponent : undefined,
+    smoothing_factor: preset.smoothing_factor,
+    smoothing_curve: preset.smoothing_curve,
+    dry_allowed_length: preset.dry_allowed_length,
+    dry_multiplier: preset.dry_multiplier,
+    dry_base: preset.dry_base,
+    dry_sequence_breakers: st_replaceMacrosInList(preset.dry_sequence_breakers),
+    dry_penalty_last_n: preset.dry_penalty_last_n,
+    max_tokens_second: preset.max_tokens_second,
+    sampler_priority: type === textgen_types.OOBA ? preset.sampler_priority : undefined,
+    samplers: type === textgen_types.LLAMACPP ? preset.samplers : undefined,
+    stopping_strings: [],
+    stop: [],
+    truncation_length: max_context,
+    ban_eos_token: preset.ban_eos_token,
+    skip_special_tokens: preset.skip_special_tokens,
+    include_reasoning: preset.include_reasoning,
+    top_a: preset.top_a,
+    tfs: preset.tfs,
+    epsilon_cutoff: [textgen_types.OOBA, textgen_types.MANCER].includes(type) ? preset.epsilon_cutoff : undefined,
+    eta_cutoff: [textgen_types.OOBA, textgen_types.MANCER].includes(type) ? preset.eta_cutoff : undefined,
+    mirostat_mode: preset.mirostat_mode,
+    mirostat_tau: preset.mirostat_tau,
+    mirostat_eta: preset.mirostat_eta,
+    custom_token_bans: [],
+    banned_strings: [],
+    api_type: type,
+    api_server: st_getTextGenServer(type),
+    sampler_order: type === textgen_types.KOBOLDCPP ? preset.sampler_order : undefined,
+    xtc_threshold: preset.xtc_threshold,
+    xtc_probability: preset.xtc_probability,
+    nsigma: preset.nsigma,
+  };
+  const nonAphroditeParams = {
+    rep_pen: preset.rep_pen,
+    rep_pen_range: preset.rep_pen_range,
+    repetition_decay: type === textgen_types.TABBY ? preset.rep_pen_decay : undefined,
+    repetition_penalty_range: preset.rep_pen_range,
+    encoder_repetition_penalty: type === textgen_types.OOBA ? preset.encoder_rep_pen : undefined,
+    no_repeat_ngram_size: type === textgen_types.OOBA ? preset.no_repeat_ngram_size : undefined,
+    penalty_alpha: type === textgen_types.OOBA ? preset.penalty_alpha : undefined,
+    temperature_last:
+      type === textgen_types.OOBA || type === textgen_types.APHRODITE || type == textgen_types.TABBY
+        ? preset.temperature_last
+        : undefined,
+    speculative_ngram: type === textgen_types.TABBY ? preset.speculative_ngram : undefined,
+    do_sample: type === textgen_types.OOBA ? preset.do_sample : undefined,
+    seed: preset.seed >= 0 ? preset.seed : undefined,
+    guidance_scale: 1,
+    negative_prompt: '',
+    grammar_string: preset.grammar_string,
+    json_schema: [textgen_types.TABBY, textgen_types.LLAMACPP].includes(type) ? preset.json_schema : undefined,
+    // llama.cpp aliases. In case someone wants to use LM Studio as Text Completion API
+    repeat_penalty: preset.rep_pen,
+    tfs_z: preset.tfs,
+    repeat_last_n: preset.rep_pen_range,
+    n_predict: maxTokens,
+    num_predict: maxTokens,
+    num_ctx: max_context,
+    mirostat: preset.mirostat_mode,
+    ignore_eos: preset.ban_eos_token,
+    n_probs: context.powerUserSettings.request_token_probabilities ? 10 : undefined,
+    rep_pen_slope: preset.rep_pen_slope,
+  };
+  const vllmParams = {
+    n: canMultiSwipe ? preset.n : 1,
+    ignore_eos: preset.ignore_eos_token,
+    spaces_between_special_tokens: preset.spaces_between_special_tokens,
+    seed: preset.seed >= 0 ? preset.seed : undefined,
+  };
+  const aphroditeParams = {
+    n: canMultiSwipe ? preset.n : 1,
+    frequency_penalty: preset.freq_pen,
+    presence_penalty: preset.presence_pen,
+    repetition_penalty: preset.rep_pen,
+    seed: preset.seed >= 0 ? preset.seed : undefined,
+    stop: [],
+    temperature: dynatemp ? (preset.min_temp + preset.max_temp) / 2 : preset.temp,
+    temperature_last: preset.temperature_last,
+    top_p: preset.top_p,
+    top_k: preset.top_k,
+    top_a: preset.top_a,
+    min_p: preset.min_p,
+    tfs: preset.tfs,
+    eta_cutoff: preset.eta_cutoff,
+    epsilon_cutoff: preset.epsilon_cutoff,
+    typical_p: preset.typical_p,
+    smoothing_factor: preset.smoothing_factor,
+    smoothing_curve: preset.smoothing_curve,
+    ignore_eos: preset.ignore_eos_token,
+    min_tokens: preset.min_length,
+    skip_special_tokens: preset.skip_special_tokens,
+    spaces_between_special_tokens: preset.spaces_between_special_tokens,
+    guided_grammar: preset.grammar_string,
+    guided_json: preset.json_schema,
+    early_stopping: false, // hacks
+    include_stop_str_in_output: false,
+    dynatemp_min: dynatemp ? preset.min_temp : undefined,
+    dynatemp_max: dynatemp ? preset.max_temp : undefined,
+    dynatemp_exponent: dynatemp ? preset.dynatemp_exponent : undefined,
+    xtc_threshold: preset.xtc_threshold,
+    xtc_probability: preset.xtc_probability,
+    nsigma: preset.nsigma,
+    custom_token_bans: [],
+    no_repeat_ngram_size: preset.no_repeat_ngram_size,
+    sampler_priority: undefined,
+  };
+
+  if (type === textgen_types.OPENROUTER) {
+    params.provider = preset.openrouter_providers;
+    params.allow_fallbacks = preset.openrouter_allow_fallbacks;
+  }
+
+  if (type === textgen_types.KOBOLDCPP) {
+    params.grammar = preset.grammar_string;
+    params.trim_stop = true;
+  }
+
+  if (type === textgen_types.HUGGINGFACE) {
+    params.top_p = Math.min(Math.max(Number(params.top_p), 0.0), 0.999);
+    params.stop = Array.isArray(params.stop) ? params.stop.slice(0, 4) : [];
+    nonAphroditeParams.seed = preset.seed >= 0 ? preset.seed : Math.floor(Math.random() * Math.pow(2, 32));
+  }
+
+  if (type === textgen_types.MANCER) {
+    params.n = canMultiSwipe ? preset.n : 1;
+    params.epsilon_cutoff /= 1000;
+    params.eta_cutoff /= 1000;
+    params.dynatemp_mode = params.dynamic_temperature ? 1 : 0;
+    params.dynatemp_min = params.dynatemp_low;
+    params.dynatemp_max = params.dynatemp_high;
+    delete params.dynatemp_low;
+    delete params.dynatemp_high;
+  }
+
+  if (type === textgen_types.TABBY) {
+    params.n = canMultiSwipe ? preset.n : 1;
+  }
+
+  switch (type) {
+    case textgen_types.VLLM:
+    case textgen_types.INFERMATICAI:
+      params = Object.assign(params, vllmParams);
+      break;
+
+    case textgen_types.APHRODITE:
+      // set params to aphroditeParams
+      params = Object.assign(params, aphroditeParams);
+      break;
+
+    default:
+      params = Object.assign(params, nonAphroditeParams);
+      break;
+  }
+
+  // Grammar conflicts with with json_schema
+  if (type === textgen_types.LLAMACPP) {
+    if (params.json_schema && Object.keys(params.json_schema).length > 0) {
+      delete params.grammar_string;
+      delete params.grammar;
+    } else {
+      delete params.json_schema;
+    }
+  }
+
+  return params;
+}
+
+async function sendGenerateRequest(generate_data: any, url: string) {
+  const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify(generate_data),
     headers: context.getRequestHeaders(),
+    cache: 'no-cache',
     signal: new AbortController().signal, // No cancellation for now
   });
 

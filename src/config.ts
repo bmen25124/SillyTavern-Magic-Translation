@@ -4,11 +4,26 @@ import { Popup } from '../../../../popup.js';
 // @ts-ignore
 import { chat_completion_sources } from '../../../../openai.js';
 
-// @ts-ignore
-import { name1, name2, CONNECT_API_MAP, extractMessageFromData } from '../../../../../script.js';
+import {
+  name1,
+  name2,
+  CONNECT_API_MAP,
+  extractMessageFromData,
+  amount_gen,
+  max_context,
+  // @ts-ignore
+} from '../../../../../script.js';
 
 // @ts-ignore
 import { getPresetManager } from '../../../../preset-manager.js';
+
+import {
+  textgen_types,
+  getLogprobsNumber,
+  getTextGenServer,
+  replaceMacrosInList,
+  // @ts-ignore
+} from '../../../../textgen-settings.js';
 
 export const extensionName = 'SillyTavern-LLM-Translator';
 export const context = SillyTavern.getContext();
@@ -73,7 +88,7 @@ export function chatCompletionSourceToModel(source: string) {
 export function st_getPresetManager(apiId = ''): {
   getPresetList(): {
     presets: any[];
-    preset_names: Record<string, number>;
+    preset_names: Record<string, number> | string[];
   };
 } {
   return getPresetManager(apiId);
@@ -84,6 +99,7 @@ export function st_getConnectApiMap(): Record<
   {
     selected: string;
     source?: string;
+    type?: string;
   }
 > {
   return CONNECT_API_MAP;
@@ -93,4 +109,16 @@ export function st_extractMessageFromData(data: object): string {
   return extractMessageFromData(data);
 }
 
-export { Popup, name1, name2, chat_completion_sources };
+export function st_getLogprobsNumber(): number {
+  return getLogprobsNumber();
+}
+
+export function st_getTextGenServer(type?: string): string {
+  return getTextGenServer(type);
+}
+
+export function st_replaceMacrosInList(str: string): string {
+  return replaceMacrosInList(str);
+}
+
+export { Popup, name1, name2, chat_completion_sources, textgen_types, amount_gen, max_context };
