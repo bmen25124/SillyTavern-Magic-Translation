@@ -1,0 +1,24 @@
+<div class="translate-via-llm-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>Translate via LLM</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <div class="example-extension_block flex-container">
+                <label>Connection Profile</label>
+                <select class="text_pole profile" title="Select a page to move question to">
+                    <option value="">Select a Connection Profile</option>
+                </select>
+
+                <label for="prompt">Prompt</label>
+                <textarea class="text_pole textarea_compact prompt" rows="4">
+Translate this to Turkish:
+```
+{{prompt}}
+```
+                </textarea>
+            </div>
+        </div>
+    </div>
+</div>
