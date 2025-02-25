@@ -4,10 +4,12 @@
 
 A [SillyTavern](https://docs.sillytavern.app/) extension that provides real-time translation of chat messages using configured Language Model APIs. You can configure the translation target language, the prompt used for translation, and which messages should be automatically translated.
 
+![settings](images/settings.png)
+
 ## Key Features
 
 *   **Real-time Translation:** Translate chat messages using LLMs.
-*   **Configurable API:** Uses [Connection Manager](https://docs.sillytavern.app/usage/core-concepts/connection-profiles/) profiles to connect to various LLM APIs.
+*   **Configurable API:** Uses [Connection Profiles](https://docs.sillytavern.app/usage/core-concepts/connection-profiles/) to connect to various LLM APIs.
 *   **Customizable Prompts:** Modify the prompt used for translation to fine-tune results.
 *   **Automatic Translation Modes:** Translate incoming responses, outgoing input, or both automatically.
 
@@ -38,6 +40,19 @@ https://github.com/bmen25124/SillyTavern-Magic-Translation
 
 4.  **Use Manual Translation:**
     *   In the chat interface, click the globe icon on a message to translate it.
+
+## Why not use the official Chat Translation extension?
+
+* The official `Chat Translation` extension is uses APIs like Google, Yandex, etc. They are not as powerful as LLMs. They are too formal and not suitable for casual conversations.
+* There is only one powerful Translation API, which is [DeepL](https://www.deepl.com), but free users are limited to 500,000 characters per month. Cheapest plan is `$8.74` per month for 1,000,000 characters. In the other side, LLMs are mostly $0.3-$2 per 1,000,000 tokens. (token = 2-3~ letters)
+
+## Recommended LLMs
+
+Make sure the model speaks in your language. Some models might not allow NSFW content.
+
+*   **Google -> Gemini Flash:** Price-efficient. (input: $0.1, output: $0.4)
+*   **Cohere -> c4ai-aya-expanse-8b/c4ai-aya-expanse-32b:** Cheap enough (input: $0.5, output: $1.5)
+*   **openai-4o/claude-sonnet-3.x:** Little pricey. It might not allow NSFW content. (input: $2.5/$3.5, output: $10/$15)
 
 ## Settings
 
