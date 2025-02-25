@@ -146,14 +146,21 @@ async function initSettings() {
     // Remove all children except the empty option
     const emptyOption = selectElement.find('option[value=""]');
     selectElement.empty().append(emptyOption);
+
+    const currentProfileId = context.extensionSettings.magicTranslation.profile;
+    let foundCurrentProfile = false;
+
     for (const profile of context.extensionSettings.connectionManager!.profiles) {
       // Only add profiles that have all required properties
       if (profile.api && profile.preset && profile.model) {
         const option = $('<option></option>');
         option.attr('value', profile.id);
         option.text(profile.name || profile.id);
-        option.prop('selected', profile.id === context.extensionSettings.magicTranslation.profile);
+        option.prop('selected', profile.id === currentProfileId);
         selectElement.append(option);
+        if (profile.id === currentProfileId) {
+          foundCurrentProfile = true;
+        }
       } else {
         const missing = [];
         if (!profile.api) missing.push('API');
@@ -165,6 +172,16 @@ async function initSettings() {
         );
       }
     }
+
+    if (currentProfileId && !foundCurrentProfile) {
+      st_echo(
+        'warning',
+        `Previously selected profile "${currentProfileId}" no longer exists. Please select a new profile.`,
+      );
+      context.extensionSettings.magicTranslation.profile = '';
+      context.saveSettingsDebounced();
+    }
+
     refreshing = false;
   });
 

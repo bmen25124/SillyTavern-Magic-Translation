@@ -1,5 +1,5 @@
 {
-    "display_name": "Character Creator",
+    "display_name": "Magic Translation",
     "loading_order": 300,
     "requires": ["connection-manager"],
     "optional": [],
