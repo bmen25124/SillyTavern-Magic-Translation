@@ -11,7 +11,7 @@ const extensionSettingsVisible = () => {
 };
 let extensionBlockButton: JQuery<HTMLElement>;
 const extensionBlockVisible = () => {
-  return $('.translate-via-llm-settings .inline-drawer-content').is(':visible');
+  return $('.magic-translation-settings .inline-drawer-content').is(':visible');
 };
 
 const sysSettingsButton = $('#sys-settings-button .drawer-toggle');
@@ -22,7 +22,7 @@ const sysSettingsButton = $('#sys-settings-button .drawer-toggle');
 let generating: number[] = [];
 async function initUI() {
   if (!context.extensionSettings.connectionManager) {
-    st_echo('error', 'Connection Manager is required to use Translate via LLM');
+    st_echo('error', 'Connection Manager is required to use Magic Translation');
     return;
   }
 
@@ -30,11 +30,11 @@ async function initUI() {
   await initSettings();
 
   const showTranslateButton = $(
-    `<div title="Translate via LLM" class="mes_button mes_translate_via_llm_button fa-solid fa-globe interactable" tabindex="0"></div>`,
+    `<div title="Magic Translate" class="mes_button mes_magic_translation_button fa-solid fa-globe interactable" tabindex="0"></div>`,
   );
   $('#message_template .mes_buttons .extraMesButtons').prepend(showTranslateButton);
 
-  $(document).on('click', '.mes_translate_via_llm_button', function () {
+  $(document).on('click', '.mes_magic_translation_button', function () {
     const messageBlock = $(this).closest('.mes');
     const messageId = Number(messageBlock.attr('mesid'));
     const message = context.chat[messageId];
@@ -51,25 +51,25 @@ async function initUI() {
   });
 
   context.eventSource.on(EventNames.MESSAGE_UPDATED, (messageId: number) => {
-    if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+    if (incomingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
       generateMessage(messageId, 'incomingMessage');
     }
   });
   context.eventSource.on(EventNames.IMPERSONATE_READY, (messageId: number) => {
-    if (outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+    if (outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
       generateMessage(messageId, 'impersonate');
     }
   });
 
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.CHARACTER_MESSAGE_RENDERED, (messageId: number) => {
-    if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+    if (incomingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
       generateMessage(messageId, 'incomingMessage');
     }
   });
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.USER_MESSAGE_RENDERED, (messageId: number) => {
-    if (outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+    if (outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
       generateMessage(messageId, 'userInput');
     }
   });
@@ -77,39 +77,39 @@ async function initUI() {
 
 function initDefaultValues() {
   let anyChange = false;
-  if (!context.extensionSettings.translateViaLlm) {
-    context.extensionSettings.translateViaLlm = {};
+  if (!context.extensionSettings.magicTranslation) {
+    context.extensionSettings.magicTranslation = {};
     anyChange = true;
   }
 
-  if (context.extensionSettings.translateViaLlm.profile === undefined) {
-    context.extensionSettings.translateViaLlm.profile = defaultSettings.profile;
+  if (context.extensionSettings.magicTranslation.profile === undefined) {
+    context.extensionSettings.magicTranslation.profile = defaultSettings.profile;
     anyChange = true;
   }
-  if (context.extensionSettings.translateViaLlm.template === undefined) {
-    context.extensionSettings.translateViaLlm.template = defaultSettings.template;
+  if (context.extensionSettings.magicTranslation.template === undefined) {
+    context.extensionSettings.magicTranslation.template = defaultSettings.template;
     anyChange = true;
   }
-  if (context.extensionSettings.translateViaLlm.filterCodeBlock === undefined) {
-    context.extensionSettings.translateViaLlm.filterCodeBlock = defaultSettings.filterCodeBlock;
+  if (context.extensionSettings.magicTranslation.filterCodeBlock === undefined) {
+    context.extensionSettings.magicTranslation.filterCodeBlock = defaultSettings.filterCodeBlock;
     anyChange = true;
   }
-  if (context.extensionSettings.translateViaLlm.targetLanguage === undefined) {
-    context.extensionSettings.translateViaLlm.targetLanguage =
+  if (context.extensionSettings.magicTranslation.targetLanguage === undefined) {
+    context.extensionSettings.magicTranslation.targetLanguage =
       context.extensionSettings.translate?.target_language || defaultSettings.targetLanguage;
     anyChange = true;
   }
-  if (context.extensionSettings.translateViaLlm.internalLanguage === undefined) {
-    context.extensionSettings.translateViaLlm.internalLanguage = defaultSettings.internalLanguage;
+  if (context.extensionSettings.magicTranslation.internalLanguage === undefined) {
+    context.extensionSettings.magicTranslation.internalLanguage = defaultSettings.internalLanguage;
     anyChange = true;
   }
-  if (context.extensionSettings.translateViaLlm.autoMode === undefined) {
-    context.extensionSettings.translateViaLlm.autoMode =
+  if (context.extensionSettings.magicTranslation.autoMode === undefined) {
+    context.extensionSettings.magicTranslation.autoMode =
       context.extensionSettings.translate?.auto_mode || defaultSettings.autoMode;
     anyChange = true;
   }
-  if (context.extensionSettings.translateViaLlm.autoOpenSettings === undefined) {
-    context.extensionSettings.translateViaLlm.autoOpenSettings = defaultSettings.autoOpenSettings;
+  if (context.extensionSettings.magicTranslation.autoOpenSettings === undefined) {
+    context.extensionSettings.magicTranslation.autoOpenSettings = defaultSettings.autoOpenSettings;
     anyChange = true;
   }
 
@@ -122,7 +122,7 @@ async function initSettings() {
   const extendedLanguageCodes = Object.entries(languageCodes).reduce(
     (acc, [name, code]) => {
       // @ts-ignore
-      acc[code] = { name: name, selected: code === context.extensionSettings.translateViaLlm.targetLanguage };
+      acc[code] = { name: name, selected: code === context.extensionSettings.magicTranslation.targetLanguage };
       return acc;
     },
     {} as Record<string, { name: string; selected: boolean }>,
@@ -135,7 +135,7 @@ async function initSettings() {
   );
   $('#extensions_settings').append(settingsHtml);
 
-  const settingsElement = $('.translate-via-llm-settings');
+  const settingsElement = $('.magic-translation-settings');
 
   const selectElement = settingsElement.find('.profile');
 
@@ -150,7 +150,7 @@ async function initSettings() {
       const option = $('<option></option>');
       option.attr('value', profile.id);
       option.text(profile.name || profile.id);
-      option.prop('selected', profile.id === context.extensionSettings.translateViaLlm.profile);
+      option.prop('selected', profile.id === context.extensionSettings.magicTranslation.profile);
       selectElement.append(option);
     }
     refreshing = false;
@@ -161,8 +161,8 @@ async function initSettings() {
       return;
     }
     const selected = selectElement.val() as string;
-    if (selected !== context.extensionSettings.translateViaLlm.profile) {
-      context.extensionSettings.translateViaLlm.profile = selected;
+    if (selected !== context.extensionSettings.magicTranslation.profile) {
+      context.extensionSettings.magicTranslation.profile = selected;
       context.saveSettingsDebounced();
     }
   });
@@ -173,20 +173,20 @@ async function initSettings() {
   });
 
   const promptElement = settingsElement.find('.prompt');
-  promptElement.val(context.extensionSettings.translateViaLlm.template!);
+  promptElement.val(context.extensionSettings.magicTranslation.template!);
   promptElement.on('change', function () {
     const template = promptElement.val() as string;
-    if (template !== context.extensionSettings.translateViaLlm.template) {
-      context.extensionSettings.translateViaLlm.template = template;
+    if (template !== context.extensionSettings.magicTranslation.template) {
+      context.extensionSettings.magicTranslation.template = template;
       context.saveSettingsDebounced();
     }
   });
 
   const filterCodeBlockElement = settingsElement.find('.filter_code_block');
-  filterCodeBlockElement.prop('checked', context.extensionSettings.translateViaLlm.filterCodeBlock);
+  filterCodeBlockElement.prop('checked', context.extensionSettings.magicTranslation.filterCodeBlock);
   filterCodeBlockElement.on('change', function () {
     const checked = filterCodeBlockElement.prop('checked');
-    context.extensionSettings.translateViaLlm.filterCodeBlock = checked;
+    context.extensionSettings.magicTranslation.filterCodeBlock = checked;
     context.saveSettingsDebounced();
   });
 
@@ -196,30 +196,30 @@ async function initSettings() {
   });
 
   const targetLanguageElement = settingsElement.find('.target_language');
-  targetLanguageElement.val(context.extensionSettings.translateViaLlm.targetLanguage!);
+  targetLanguageElement.val(context.extensionSettings.magicTranslation.targetLanguage!);
   targetLanguageElement.on('change', function () {
     const targetLanguage = targetLanguageElement.val() as string;
-    if (targetLanguage !== context.extensionSettings.translateViaLlm.targetLanguage) {
-      context.extensionSettings.translateViaLlm.targetLanguage = targetLanguage;
+    if (targetLanguage !== context.extensionSettings.magicTranslation.targetLanguage) {
+      context.extensionSettings.magicTranslation.targetLanguage = targetLanguage;
       context.saveSettingsDebounced();
     }
   });
 
   const autoModeElement = settingsElement.find('.auto_mode');
-  autoModeElement.val(context.extensionSettings.translateViaLlm.autoMode!);
+  autoModeElement.val(context.extensionSettings.magicTranslation.autoMode!);
   autoModeElement.on('change', function () {
     const autoMode = autoModeElement.val() as string;
-    if (autoMode !== context.extensionSettings.translateViaLlm.autoMode) {
-      context.extensionSettings.translateViaLlm.autoMode = autoMode as AutoModeOptions;
+    if (autoMode !== context.extensionSettings.magicTranslation.autoMode) {
+      context.extensionSettings.magicTranslation.autoMode = autoMode as AutoModeOptions;
       context.saveSettingsDebounced();
     }
   });
 
   const autoOpenSettingsElement = settingsElement.find('.auto_open_settings');
-  autoOpenSettingsElement.prop('checked', context.extensionSettings.translateViaLlm.autoOpenSettings);
+  autoOpenSettingsElement.prop('checked', context.extensionSettings.magicTranslation.autoOpenSettings);
   autoOpenSettingsElement.on('change', function () {
     const checked = autoOpenSettingsElement.prop('checked');
-    context.extensionSettings.translateViaLlm.autoOpenSettings = checked;
+    context.extensionSettings.magicTranslation.autoOpenSettings = checked;
     context.saveSettingsDebounced();
   });
 }
@@ -229,9 +229,9 @@ async function initSettings() {
  * @param type userInput: User sended message, incomingMessage: Message from LLM, impersonate: Message impersonate
  */
 async function generateMessage(messageId: number, type: 'userInput' | 'incomingMessage' | 'impersonate') {
-  if (!context.extensionSettings.translateViaLlm.profile) {
+  if (!context.extensionSettings.magicTranslation.profile) {
     let warningMessage = 'Select a connection profile';
-    if (context.extensionSettings.translateViaLlm.autoOpenSettings) {
+    if (context.extensionSettings.magicTranslation.autoOpenSettings) {
       if (!extensionSettingsVisible()) {
         extensionSettingsButton.trigger('click');
       }
@@ -241,13 +241,13 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     }
 
     // Improve warning message
-    if (type === 'userInput' && outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+    if (type === 'userInput' && outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
       warningMessage += '. Or disable auto mode.';
-    } else if (type === 'impersonate' && outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+    } else if (type === 'impersonate' && outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
       warningMessage += '. Or disable auto mode.';
     } else if (
       type === 'incomingMessage' &&
-      incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)
+      incomingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)
     ) {
       warningMessage += '. Or disable auto mode.';
     }
@@ -255,8 +255,8 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     st_echo('warning', warningMessage);
     return;
   }
-  if (!context.extensionSettings.translateViaLlm.template) {
-    st_echo('error', 'Missing template, set a template in the Translate via LLM settings');
+  if (!context.extensionSettings.magicTranslation.template) {
+    st_echo('error', 'Missing template, set a template in the Magic Translation settings');
     return null;
   }
 
@@ -272,15 +272,15 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
 
   const languageCode =
     type === 'userInput'
-      ? context.extensionSettings.translateViaLlm.internalLanguage
-      : context.extensionSettings.translateViaLlm.targetLanguage;
+      ? context.extensionSettings.magicTranslation.internalLanguage
+      : context.extensionSettings.magicTranslation.targetLanguage;
   const languageText = Object.entries(languageCodes).find(([, code]) => code === languageCode)?.[0];
   if (!languageText) {
     st_echo('error', `Make sure language ${languageCode} is supported`);
     return null;
   }
 
-  const prompt = context.extensionSettings.translateViaLlm.template
+  const prompt = context.extensionSettings.magicTranslation.template
     .replace(/{{prompt}}/g, message?.mes ?? (messageId as unknown as string))
     .replace(/{{language}}/g, languageText);
 
@@ -288,17 +288,15 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     generating.push(messageId);
   }
   try {
-    const result = getGeneratePayload(context.extensionSettings.translateViaLlm.profile, prompt);
+    const result = getGeneratePayload(context.extensionSettings.magicTranslation.profile, prompt);
     if (!result) {
       return;
     }
-    console.debug(result);
 
     const response = await sendGenerateRequest(result.body, result.url, result.type);
-    console.debug(response);
 
     let displayText = response;
-    if (context.extensionSettings.translateViaLlm.filterCodeBlock) {
+    if (context.extensionSettings.magicTranslation.filterCodeBlock) {
       const codeBlockMatch = response.match(/^(?:[^`]*?)\n?```[\s\S]*?\n([\s\S]*?)```(?![^`]*```)/);
       if (codeBlockMatch) {
         displayText = codeBlockMatch[1].trim();

@@ -1,17 +1,12 @@
 import {
   amount_gen,
   chat_completion_sources,
-  chatCompletionSourceToModel,
   context,
   max_context,
   name1,
   name2,
   st_echo,
-  st_extractMessageFromData,
-  st_getConnectApiMap,
   st_getLogprobsNumber,
-  st_getPresetManager,
-  st_getTextGenServer,
   st_replaceMacrosInList,
   textgen_types,
 } from './config';
@@ -36,9 +31,7 @@ export function getGeneratePayload(
     return null;
   }
 
-  console.debug(prompt);
-
-  const selectedApiMap = st_getConnectApiMap()[profile.api];
+  const selectedApiMap = context.CONNECT_API_MAP[profile.api];
   if (!selectedApiMap) {
     st_echo('error', `Could not find API ${profile.api}`);
     return null;
@@ -48,7 +41,7 @@ export function getGeneratePayload(
     return null;
   }
 
-  const presetList = st_getPresetManager(selectedApiMap.selected).getPresetList();
+  const presetList = context.getPresetManager(selectedApiMap.selected).getPresetList();
   const preset = structuredClone(
     selectedApiMap.selected === 'openai'
       ? // @ts-ignore
@@ -103,7 +96,7 @@ export function getOpenAIData(
         content: replacedPrompt,
       },
     ],
-    model: chatCompletionSourceToModel(chat_completion_source),
+    model: context.getChatCompletionModel(chat_completion_source),
     temperature: preset.temperature,
     frequency_penalty: preset.freq_pen,
     presence_penalty: preset.pres_pen,
@@ -282,7 +275,7 @@ export function getTextGenData(
     model: profile.model,
     max_new_tokens: maxTokens,
     max_tokens: maxTokens,
-    logprobs: context.powerUserSettings.request_token_probabilities ? st_getLogprobsNumber() : undefined,
+    logprobs: context.powerUserSettings.request_token_probabilities ? st_getLogprobsNumber(type) : undefined,
     temperature: dynatemp ? (preset.min_temp + preset.max_temp) / 2 : preset.temp,
     top_p: preset.top_p,
     typical_p: preset.typical_p,
@@ -332,7 +325,7 @@ export function getTextGenData(
     custom_token_bans: [],
     banned_strings: [],
     api_type: type,
-    api_server: st_getTextGenServer(type),
+    api_server: context.getTextGenServer(type),
     sampler_order: type === textgen_types.KOBOLDCPP ? preset.sampler_order : undefined,
     xtc_threshold: preset.xtc_threshold,
     xtc_probability: preset.xtc_probability,
@@ -497,5 +490,5 @@ export async function sendGenerateRequest(
     throw new Error(message);
   }
 
-  return st_extractMessageFromData(data, activeApi);
+  return context.extractMessageFromData(data, activeApi);
 }

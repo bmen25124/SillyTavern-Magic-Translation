@@ -1,8 +1,8 @@
-# SillyTavern LLM Translator
+# SillyTavern Magic Translation
 
 ## Overview
 
-The SillyTavern LLM Translator is a SillyTavern extension that provides real-time translation of chat messages using configured Language Model APIs. You can configure the translation target language, the prompt used for translation, and which messages should be automatically translated.
+A [SillyTavern](https://docs.sillytavern.app/) extension that provides real-time translation of chat messages using configured Language Model APIs. You can configure the translation target language, the prompt used for translation, and which messages should be automatically translated.
 
 ## Key Features
 
@@ -16,7 +16,7 @@ The SillyTavern LLM Translator is a SillyTavern extension that provides real-tim
 Install via the SillyTavern extension installer:
 
 ```txt
-https://github.com/bmen25124/SillyTavern-LLM-Translator
+https://github.com/bmen25124/SillyTavern-Magic-Translation
 ```
 
 ## How to Use
@@ -26,7 +26,7 @@ https://github.com/bmen25124/SillyTavern-LLM-Translator
     *   Create an connection profile. This profile will be used to send translation requests to the LLM.
 
 2.  **Configure Translation Settings:**
-    *   Go to the "Translate via LLM" panel in the extension settings.
+    *   Go to the "Magic Translation" panel in the extension settings.
     *   Select a Connection Profile from the dropdown.
     *   Select desired Auto Mode or leave None if only manual translation is needed.
     *   Choose the Target Language for translation.
@@ -53,15 +53,19 @@ https://github.com/bmen25124/SillyTavern-LLM-Translator
     ```text
     Translate this text to {{language}}. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
 
-    ```
+    \`\`\`
     {{prompt}}
-    ```
+    \`\`\`
 
-    Important: Your response must follow this exact format with the translation enclosed in code blocks (``\`).
+    Important: Your response must follow this exact format with the translation enclosed in code blocks (\`\`\`).
     ```
 
 *   **Filter Code Block:** When checked, the extension extracts text between the \`\`\` code blocks.
 *   **Auto Open Settings when profile not selected:** When checked, the extension automatically opens the settings when a connection profile hasn't been defined.
+
+## Important Notes
+
+*   If you are using this extension, it's recommended to disable the "Auto Mode" feature of the official `Chat Translation` extension (if enabled) to avoid conflicts or unexpected behavior.
 
 ## Troubleshooting
 

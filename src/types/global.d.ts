@@ -49,7 +49,7 @@ declare global {
         target_language: string;
         auto_mode: AutoModeOptions;
       };
-      translateViaLlm: {
+      magicTranslation: {
         profile?: string;
         template?: string;
         filterCodeBlock?: boolean;
@@ -74,6 +74,23 @@ declare global {
       }
     >;
     eventSource: EventEmitter;
+    getChatCompletionModel: (source?: string) => string;
+    CONNECT_API_MAP: Record<
+      string,
+      {
+        selected: string;
+        source?: string;
+        type?: string;
+      }
+    >;
+    extractMessageFromData: (data: object, activeApi?: string) => string;
+    getPresetManager: (apiId?: string) => {
+      getPresetList(): {
+        presets: any[];
+        preset_names: Record<string, number> | string[];
+      };
+    };
+    getTextGenServer: (type?: string) => string;
   }
 
   const SillyTavern: {
