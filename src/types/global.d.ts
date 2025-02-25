@@ -48,6 +48,7 @@ declare global {
       translateViaLlm: {
         selectedProfile?: string;
         template?: string;
+        filterCodeBlock?: boolean;
       };
     };
     saveSettingsDebounced: () => void;

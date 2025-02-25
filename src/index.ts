@@ -26,6 +26,9 @@ async function initUI() {
   if (context.extensionSettings.translateViaLlm.template === undefined) {
     context.extensionSettings.translateViaLlm.template = DEFAULT_PROMPT;
   }
+  if (context.extensionSettings.translateViaLlm.filterCodeBlock === undefined) {
+    context.extensionSettings.translateViaLlm.filterCodeBlock = true;
+  }
 
   const settingsHtml = await context.renderExtensionTemplateAsync(`third-party/${extensionName}`, 'templates/settings');
   $('#extensions_settings').append(settingsHtml);
@@ -68,6 +71,14 @@ async function initUI() {
       context.extensionSettings.translateViaLlm.template = template;
       context.saveSettingsDebounced();
     }
+  });
+
+  const filterCodeBlockElement = settingsElement.find('.filter_code_block');
+  filterCodeBlockElement.prop('checked', context.extensionSettings.translateViaLlm.filterCodeBlock);
+  filterCodeBlockElement.on('change', function () {
+    const checked = filterCodeBlockElement.prop('checked');
+    context.extensionSettings.translateViaLlm.filterCodeBlock = checked;
+    context.saveSettingsDebounced();
   });
 
   settingsElement.find('.restore_default').on('click', function () {
@@ -118,7 +129,15 @@ async function initUI() {
         message.extra = {};
       }
 
-      message.extra.display_text = response;
+      let displayText = response;
+      if (context.extensionSettings.translateViaLlm.filterCodeBlock) {
+        const codeBlockMatch = response.match(/^(?:[^`]*?)\n?```[\s\S]*?\n([\s\S]*?)```(?![^`]*```)/);
+        if (codeBlockMatch) {
+          displayText = codeBlockMatch[1].trim();
+        }
+      }
+
+      message.extra.display_text = displayText;
       st_updateMessageBlock(messageId, message);
     } catch (error) {
       console.error(error);
