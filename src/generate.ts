@@ -15,6 +15,7 @@ import {
   st_replaceMacrosInList,
   textgen_types,
 } from './config';
+import { languageCodes } from './types/types';
 
 const MAX_TOKENS = 4096;
 
@@ -39,13 +40,15 @@ export function getGeneratePayload(
     st_echo('error', 'Missing template, set a template in the Translate via LLM settings');
     return null;
   }
+  if (!context.extensionSettings.translateViaLlm.targetLanguage) {
+    st_echo('error', 'Missing target language, set a target language in the Translate via LLM settings');
+    return null;
+  }
 
-  const targetLanguageCode = context.extensionSettings.translate!.target_language;
-  const targetLanguageText = $('#translation_target_language')
-    .children('option[value="' + targetLanguageCode + '"]')
-    .text();
+  const targetLanguageCode = context.extensionSettings.translateViaLlm.targetLanguage;
+  const targetLanguageText = Object.entries(languageCodes).find(([, code]) => code === targetLanguageCode)?.[0];
   if (!targetLanguageText) {
-    st_echo('error', `Could not find target language ${targetLanguageCode}`);
+    st_echo('error', `Make sure target language ${targetLanguageCode} is supported`);
     return null;
   }
 

@@ -7,8 +7,15 @@
         <div class="inline-drawer-content">
             <div class="openai_restorable flex-container">
                 <label>Connection Profile</label>
-                <select class="text_pole profile" title="Select a page to move question to">
+                <select class="text_pole profile" title="Select a Connection Profile">
                     <option value="">Select a Connection Profile</option>
+                </select>
+
+                <label>Target Language</label>
+                <select class="text_pole target_language" title="Select a Target Language">
+                    {{#each languageCodes}}
+                    <option value="{{@key}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+                    {{/each}}
                 </select>
 
                 <div class="title_restorable">

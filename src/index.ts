@@ -1,5 +1,6 @@
 import { context, extensionName, st_echo, st_updateMessageBlock } from './config';
 import { getGeneratePayload, sendGenerateRequest } from './generate';
+import { languageCodes } from './types/types';
 
 const DEFAULT_PROMPT = `Translate this text to {{language}}. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
 
@@ -12,10 +13,6 @@ Important: Your response must follow this exact format with the translation encl
 async function initUI() {
   if (!context.extensionSettings.connectionManager) {
     st_echo('error', 'Connection Manager is required to use Translate via LLM');
-    return;
-  }
-  if (!context.extensionSettings.translate) {
-    st_echo('error', 'Translate is required to use Translate via LLM');
     return;
   }
 
@@ -32,8 +29,25 @@ async function initUI() {
   if (context.extensionSettings.translateViaLlm.filterCodeBlock === undefined) {
     context.extensionSettings.translateViaLlm.filterCodeBlock = true;
   }
+  if (context.extensionSettings.translateViaLlm.targetLanguage === undefined) {
+    context.extensionSettings.translateViaLlm.targetLanguage =
+      context.extensionSettings.translate?.target_language || 'en';
+  }
 
-  const settingsHtml = await context.renderExtensionTemplateAsync(`third-party/${extensionName}`, 'templates/settings');
+  const extendedLanguageCodes = Object.entries(languageCodes).reduce(
+    (acc, [name, code]) => {
+      // @ts-ignore
+      acc[code] = { name: name, selected: code === context.extensionSettings.translateViaLlm.targetLanguage };
+      return acc;
+    },
+    {} as Record<string, { name: string; selected: boolean }>,
+  );
+
+  const settingsHtml = await context.renderExtensionTemplateAsync(
+    `third-party/${extensionName}`,
+    'templates/settings',
+    { languageCodes: extendedLanguageCodes },
+  );
   $('#extensions_settings').append(settingsHtml);
 
   const settingsElement = $('.translate-via-llm-settings');
@@ -87,6 +101,16 @@ async function initUI() {
   settingsElement.find('.restore_default').on('click', function () {
     promptElement.val(DEFAULT_PROMPT);
     promptElement.trigger('change');
+  });
+
+  const targetLanguageElement = settingsElement.find('.target_language');
+  targetLanguageElement.val(context.extensionSettings.translateViaLlm.targetLanguage);
+  targetLanguageElement.on('change', function () {
+    const targetLanguage = targetLanguageElement.val() as string;
+    if (targetLanguage !== context.extensionSettings.translateViaLlm.targetLanguage) {
+      context.extensionSettings.translateViaLlm.targetLanguage = targetLanguage;
+      context.saveSettingsDebounced();
+    }
   });
 
   const showTranslateButton = $(

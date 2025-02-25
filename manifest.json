@@ -1,7 +1,7 @@
 {
     "display_name": "Character Creator",
     "loading_order": 300,
-    "requires": ["connection-manager", "translate"],
+    "requires": ["connection-manager"],
     "optional": [],
     "js": "dist/index.js",
     "css": "dist/style.css",

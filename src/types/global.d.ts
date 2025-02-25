@@ -49,6 +49,7 @@ declare global {
         selectedProfile?: string;
         template?: string;
         filterCodeBlock?: boolean;
+        targetLanguage?: string;
       };
     };
     saveSettingsDebounced: () => void;
