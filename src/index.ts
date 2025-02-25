@@ -5,6 +5,17 @@ import { AutoModeOptions, defaultSettings, EventNames, languageCodes } from './t
 const incomingTypes = [AutoModeOptions.RESPONSES, AutoModeOptions.BOTH];
 const outgoingTypes = [AutoModeOptions.INPUT, AutoModeOptions.BOTH];
 
+const extensionSettingsButton = $('#extensions-settings-button .drawer-toggle');
+const extensionSettingsVisible = () => {
+  return $('#rm_extensions_block').is(':visible');
+};
+let extensionBlockButton: JQuery<HTMLElement>;
+const extensionBlockVisible = () => {
+  return $('.translate-via-llm-settings .inline-drawer-content').is(':visible');
+};
+
+const sysSettingsButton = $('#sys-settings-button .drawer-toggle');
+
 /**
  * Message IDs that are currently being generated
  */
@@ -36,30 +47,30 @@ async function initUI() {
       st_updateMessageBlock(messageId, message);
       return;
     }
-    generateMessage(messageId);
+    generateMessage(messageId, 'incomingMessage');
   });
 
   context.eventSource.on(EventNames.MESSAGE_UPDATED, (messageId: number) => {
     if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
-      generateMessage(messageId);
+      generateMessage(messageId, 'incomingMessage');
     }
   });
   context.eventSource.on(EventNames.IMPERSONATE_READY, (messageId: number) => {
-    if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
-      generateMessage(messageId, true);
+    if (outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+      generateMessage(messageId, 'impersonate');
     }
   });
 
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.CHARACTER_MESSAGE_RENDERED, (messageId: number) => {
     if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
-      generateMessage(messageId);
+      generateMessage(messageId, 'incomingMessage');
     }
   });
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.USER_MESSAGE_RENDERED, (messageId: number) => {
     if (outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
-      generateMessage(messageId);
+      generateMessage(messageId, 'userInput');
     }
   });
 }
@@ -88,9 +99,17 @@ function initDefaultValues() {
       context.extensionSettings.translate?.target_language || defaultSettings.targetLanguage;
     anyChange = true;
   }
+  if (context.extensionSettings.translateViaLlm.internalLanguage === undefined) {
+    context.extensionSettings.translateViaLlm.internalLanguage = defaultSettings.internalLanguage;
+    anyChange = true;
+  }
   if (context.extensionSettings.translateViaLlm.autoMode === undefined) {
     context.extensionSettings.translateViaLlm.autoMode =
       context.extensionSettings.translate?.auto_mode || defaultSettings.autoMode;
+    anyChange = true;
+  }
+  if (context.extensionSettings.translateViaLlm.autoOpenSettings === undefined) {
+    context.extensionSettings.translateViaLlm.autoOpenSettings = defaultSettings.autoOpenSettings;
     anyChange = true;
   }
 
@@ -117,10 +136,12 @@ async function initSettings() {
   $('#extensions_settings').append(settingsHtml);
 
   const settingsElement = $('.translate-via-llm-settings');
+
   const selectElement = settingsElement.find('.profile');
 
   let refreshing = false;
-  settingsElement.find('.inline-drawer-toggle').on('click', function () {
+  extensionBlockButton = settingsElement.find('.inline-drawer-toggle');
+  extensionBlockButton.on('click', function () {
     refreshing = true;
     // Remove all children except the empty option
     const emptyOption = selectElement.find('option[value=""]');
@@ -144,6 +165,11 @@ async function initSettings() {
       context.extensionSettings.translateViaLlm.profile = selected;
       context.saveSettingsDebounced();
     }
+  });
+
+  const redirectSysSettings = settingsElement.find('.redirect_sys_settings');
+  redirectSysSettings.on('click', function () {
+    sysSettingsButton.trigger('click');
   });
 
   const promptElement = settingsElement.find('.prompt');
@@ -188,10 +214,53 @@ async function initSettings() {
       context.saveSettingsDebounced();
     }
   });
+
+  const autoOpenSettingsElement = settingsElement.find('.auto_open_settings');
+  autoOpenSettingsElement.prop('checked', context.extensionSettings.translateViaLlm.autoOpenSettings);
+  autoOpenSettingsElement.on('change', function () {
+    const checked = autoOpenSettingsElement.prop('checked');
+    context.extensionSettings.translateViaLlm.autoOpenSettings = checked;
+    context.saveSettingsDebounced();
+  });
 }
 
-async function generateMessage(messageId: number, impersonate: boolean = false) {
-  const message = !impersonate ? context.chat[messageId] : undefined;
+/**
+ * @param messageId If type is 'impersonate', messageId is the message impersonate
+ * @param type userInput: User sended message, incomingMessage: Message from LLM, impersonate: Message impersonate
+ */
+async function generateMessage(messageId: number, type: 'userInput' | 'incomingMessage' | 'impersonate') {
+  if (!context.extensionSettings.translateViaLlm.profile) {
+    let warningMessage = 'Select a connection profile';
+    if (context.extensionSettings.translateViaLlm.autoOpenSettings) {
+      if (!extensionSettingsVisible()) {
+        extensionSettingsButton.trigger('click');
+      }
+      if (!extensionBlockVisible()) {
+        extensionBlockButton.trigger('click');
+      }
+    }
+
+    // Improve warning message
+    if (type === 'userInput' && outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+      warningMessage += '. Or disable auto mode.';
+    } else if (type === 'impersonate' && outgoingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
+      warningMessage += '. Or disable auto mode.';
+    } else if (
+      type === 'incomingMessage' &&
+      incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)
+    ) {
+      warningMessage += '. Or disable auto mode.';
+    }
+
+    st_echo('warning', warningMessage);
+    return;
+  }
+  if (!context.extensionSettings.translateViaLlm.template) {
+    st_echo('error', 'Missing template, set a template in the Translate via LLM settings');
+    return null;
+  }
+
+  const message = type !== 'impersonate' ? context.chat[messageId] : undefined;
   if (!message) {
     st_echo('error', `Could not find message with id ${messageId}`);
     return;
@@ -200,19 +269,26 @@ async function generateMessage(messageId: number, impersonate: boolean = false) 
     st_echo('warning', 'Translation is already in progress');
     return;
   }
+
+  const languageCode =
+    type === 'userInput'
+      ? context.extensionSettings.translateViaLlm.internalLanguage
+      : context.extensionSettings.translateViaLlm.targetLanguage;
+  const languageText = Object.entries(languageCodes).find(([, code]) => code === languageCode)?.[0];
+  if (!languageText) {
+    st_echo('error', `Make sure language ${languageCode} is supported`);
+    return null;
+  }
+
+  const prompt = context.extensionSettings.translateViaLlm.template
+    .replace(/{{prompt}}/g, message?.mes ?? (messageId as unknown as string))
+    .replace(/{{language}}/g, languageText);
+
   if (message) {
     generating.push(messageId);
   }
   try {
-    if (!context.extensionSettings.translateViaLlm.profile) {
-      st_echo('error', 'Select a connection profile');
-      return;
-    }
-
-    const result = getGeneratePayload(
-      context.extensionSettings.translateViaLlm.profile,
-      message?.mes ?? (messageId as unknown as string),
-    );
+    const result = getGeneratePayload(context.extensionSettings.translateViaLlm.profile, prompt);
     if (!result) {
       return;
     }
@@ -230,10 +306,14 @@ async function generateMessage(messageId: number, impersonate: boolean = false) 
     }
 
     if (message) {
-      if (typeof message.extra !== 'object') {
-        message.extra = {};
+      if (type === 'userInput') {
+        message.mes = displayText;
+      } else {
+        if (typeof message.extra !== 'object') {
+          message.extra = {};
+        }
+        message.extra.display_text = displayText;
       }
-      message.extra.display_text = displayText;
       st_updateMessageBlock(messageId, message);
     } else {
       $('#send_textarea').val(displayText);

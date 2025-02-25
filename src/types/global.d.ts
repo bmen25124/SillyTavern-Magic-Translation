@@ -54,7 +54,9 @@ declare global {
         template?: string;
         filterCodeBlock?: boolean;
         targetLanguage?: string;
+        internalLanguage?: string;
         autoMode?: AutoModeOptions;
+        autoOpenSettings?: boolean;
       };
     };
     saveSettingsDebounced: () => void;

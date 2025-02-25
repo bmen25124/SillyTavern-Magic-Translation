@@ -15,7 +15,6 @@ import {
   st_replaceMacrosInList,
   textgen_types,
 } from './config';
-import { languageCodes } from './types/types';
 
 const MAX_TOKENS = 4096;
 
@@ -36,27 +35,8 @@ export function getGeneratePayload(
     st_echo('error', 'Select a connection profile that has a preset');
     return null;
   }
-  if (!context.extensionSettings.translateViaLlm.template) {
-    st_echo('error', 'Missing template, set a template in the Translate via LLM settings');
-    return null;
-  }
-  if (!context.extensionSettings.translateViaLlm.targetLanguage) {
-    st_echo('error', 'Missing target language, set a target language in the Translate via LLM settings');
-    return null;
-  }
 
-  const targetLanguageCode = context.extensionSettings.translateViaLlm.targetLanguage;
-  const targetLanguageText = Object.entries(languageCodes).find(([, code]) => code === targetLanguageCode)?.[0];
-  if (!targetLanguageText) {
-    st_echo('error', `Make sure target language ${targetLanguageCode} is supported`);
-    return null;
-  }
-
-  const replacedPrompt = context.extensionSettings.translateViaLlm.template
-    .replace(/{{prompt}}/g, prompt)
-    .replace(/{{language}}/g, targetLanguageText);
-
-  console.debug(replacedPrompt);
+  console.debug(prompt);
 
   const selectedApiMap = st_getConnectApiMap()[profile.api];
   if (!selectedApiMap) {
@@ -83,13 +63,13 @@ export function getGeneratePayload(
 
   if (selectedApiMap.selected === 'openai') {
     return {
-      body: getOpenAIData(selectedApiMap, replacedPrompt, preset),
+      body: getOpenAIData(selectedApiMap, prompt, preset),
       url: '/api/backends/chat-completions/generate',
       type: selectedApiMap.selected,
     };
   } else {
     return {
-      body: getTextGenData(selectedApiMap.type, replacedPrompt, preset, profile),
+      body: getTextGenData(selectedApiMap.type, prompt, preset, profile),
       url: '/api/backends/text-completions/generate',
       type: selectedApiMap.selected,
     };

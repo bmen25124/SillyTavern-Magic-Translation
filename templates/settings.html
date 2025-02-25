@@ -6,7 +6,13 @@
         </div>
         <div class="inline-drawer-content">
             <div class="openai_restorable flex-container">
-                <label>Connection Profile</label>
+                <div class="title_restorable">
+                    <label>Connection Profile</label>
+                    <button
+                        class="menu_button fa-solid fa-route interactable redirect_sys_settings"
+                        title="Go to connection profile tab"
+                    ></button>
+                </div>
                 <select class="text_pole profile" title="Select a Connection Profile">
                     <option value="">Select a Connection Profile</option>
                 </select>
@@ -46,6 +52,10 @@ Translate this to {{language}}:
                     <label class="checkbox_label">
                         <input type="checkbox" class="filter_code_block" />
                         Filter Code Block: Get text between ``` marks (Recommended)
+                    </label>
+                    <label class="checkbox_label">
+                        <input type="checkbox" class="auto_open_settings" />
+                        Auto open settings when profile not selected
                     </label>
                 </div>
             </div>

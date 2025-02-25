@@ -86,7 +86,9 @@ export const defaultSettings = {
   Important: Your response must follow this exact format with the translation enclosed in code blocks (\`\`\`).`,
   filterCodeBlock: true,
   targetLanguage: 'en',
+  internalLanguage: 'en',
   autoMode: AutoModeOptions.NONE,
+  autoOpenSettings: true,
 };
 
 export const languageCodes: Record<string, string> = {
