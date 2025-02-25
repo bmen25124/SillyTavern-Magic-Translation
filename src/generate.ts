@@ -1,5 +1,5 @@
 import {
-  // amount_gen,
+  amount_gen,
   chat_completion_sources,
   chatCompletionSourceToModel,
   context,
@@ -15,6 +15,8 @@ import {
   st_replaceMacrosInList,
   textgen_types,
 } from './config';
+
+const MAX_TOKENS = 4096;
 
 export function getGeneratePayload(
   profileId: string,
@@ -123,7 +125,7 @@ export function getOpenAIData(
     frequency_penalty: preset.freq_pen,
     presence_penalty: preset.pres_pen,
     top_p: preset.top_p,
-    max_tokens: preset.openai_max_tokens,
+    max_tokens: Math.max(MAX_TOKENS, preset.openai_max_tokens),
     stream: false, // Maybe optional?
     stop: [], // Don't care
     chat_completion_source: chat_completion_source,
@@ -288,8 +290,7 @@ export function getTextGenData(
 
   const canMultiSwipe = true;
   const dynatemp = document.getElementById('dynatemp_block_ooba')?.dataset?.tgType?.includes(type);
-  // const maxTokens = preset.genamt ?? amount_gen;
-  const maxTokens = 0;
+  const maxTokens = Math.max(MAX_TOKENS, preset.genamt ?? amount_gen);
 
   let params: any;
   params = {
