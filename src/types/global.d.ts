@@ -1,3 +1,6 @@
+import { EventEmitter } from 'stream';
+import { AutoModeOptions } from './types';
+
 declare global {
   interface ConnectionProfile {
     id: string;
@@ -44,12 +47,14 @@ declare global {
       };
       translate?: {
         target_language: string;
+        auto_mode: AutoModeOptions;
       };
       translateViaLlm: {
-        selectedProfile?: string;
+        profile?: string;
         template?: string;
         filterCodeBlock?: boolean;
         targetLanguage?: string;
+        autoMode?: AutoModeOptions;
       };
     };
     saveSettingsDebounced: () => void;
@@ -66,6 +71,7 @@ declare global {
         };
       }
     >;
+    eventSource: EventEmitter;
   }
 
   const SillyTavern: {

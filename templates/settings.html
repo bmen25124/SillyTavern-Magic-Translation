@@ -11,6 +11,14 @@
                     <option value="">Select a Connection Profile</option>
                 </select>
 
+                <label>Auto Mode</label>
+                <select class="text_pole auto_mode">
+                    <option data-i18n="ext_translate_mode_none" value="none">None</option>
+                    <option data-i18n="ext_translate_mode_responses" value="responses">Translate responses</option>
+                    <option data-i18n="ext_translate_mode_inputs" value="inputs">Translate inputs</option>
+                    <option data-i18n="ext_translate_mode_both" value="both">Translate both</option>
+                </select>
+
                 <label>Target Language</label>
                 <select class="text_pole target_language" title="Select a Target Language">
                     {{#each languageCodes}}
