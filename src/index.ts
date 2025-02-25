@@ -147,11 +147,23 @@ async function initSettings() {
     const emptyOption = selectElement.find('option[value=""]');
     selectElement.empty().append(emptyOption);
     for (const profile of context.extensionSettings.connectionManager!.profiles) {
-      const option = $('<option></option>');
-      option.attr('value', profile.id);
-      option.text(profile.name || profile.id);
-      option.prop('selected', profile.id === context.extensionSettings.magicTranslation.profile);
-      selectElement.append(option);
+      // Only add profiles that have all required properties
+      if (profile.api && profile.preset && profile.model) {
+        const option = $('<option></option>');
+        option.attr('value', profile.id);
+        option.text(profile.name || profile.id);
+        option.prop('selected', profile.id === context.extensionSettings.magicTranslation.profile);
+        selectElement.append(option);
+      } else {
+        const missing = [];
+        if (!profile.api) missing.push('API');
+        if (!profile.preset) missing.push('preset');
+        if (!profile.model) missing.push('model');
+        st_echo(
+          'warning',
+          `Profile "${profile.name || profile.id}" is not available for translation: missing ${missing.join(', ')}`,
+        );
+      }
     }
     refreshing = false;
   });
@@ -229,7 +241,8 @@ async function initSettings() {
  * @param type userInput: User sended message, incomingMessage: Message from LLM, impersonate: Message impersonate
  */
 async function generateMessage(messageId: number, type: 'userInput' | 'incomingMessage' | 'impersonate') {
-  if (!context.extensionSettings.magicTranslation.profile) {
+  const profileId = context.extensionSettings.magicTranslation.profile;
+  if (!profileId) {
     let warningMessage = 'Select a connection profile';
     if (context.extensionSettings.magicTranslation.autoOpenSettings) {
       if (!extensionSettingsVisible()) {
@@ -288,7 +301,7 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     generating.push(messageId);
   }
   try {
-    const result = getGeneratePayload(context.extensionSettings.magicTranslation.profile, prompt);
+    const result = getGeneratePayload(profileId, prompt);
     if (!result) {
       return;
     }
