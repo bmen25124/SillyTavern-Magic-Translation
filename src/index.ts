@@ -1,10 +1,13 @@
 import { context, extensionName, st_echo, st_updateMessageBlock } from './config';
 import { getGeneratePayload, sendGenerateRequest } from './generate';
 
-const DEFAULT_PROMPT = `Translate this to {{language}}:
+const DEFAULT_PROMPT = `Translate this text to {{language}}. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
+
 \`\`\`
 {{prompt}}
-\`\`\``;
+\`\`\`
+
+Important: Your response must follow this exact format with the translation enclosed in code blocks (\`\`\`).`;
 
 async function initUI() {
   if (!context.extensionSettings.connectionManager) {
