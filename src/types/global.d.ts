@@ -46,8 +46,8 @@ declare global {
         target_language: string;
       };
       translateViaLlm: {
-        selectedProfile: string;
-        template: string;
+        selectedProfile?: string;
+        template?: string;
       };
     };
     saveSettingsDebounced: () => void;

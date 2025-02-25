@@ -5,13 +5,21 @@
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <div class="example-extension_block flex-container">
+            <div class="openai_restorable flex-container">
                 <label>Connection Profile</label>
                 <select class="text_pole profile" title="Select a page to move question to">
                     <option value="">Select a Connection Profile</option>
                 </select>
 
-                <label for="prompt">Prompt</label>
+                <div class="title_restorable">
+                    <label for="prompt">Prompt</label>
+                    <button
+                        class="menu_button fa-solid fa-undo interactable restore_default"
+                        data-i18n="[title]Restore default"
+                        title="Restore default"
+                    ></button>
+                </div>
+
                 <textarea class="text_pole textarea_compact prompt" rows="4">
 Translate this to {{language}}:
 ```

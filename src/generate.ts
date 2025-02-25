@@ -33,6 +33,10 @@ export function getGeneratePayload(
     st_echo('error', 'Select a connection profile that has a preset');
     return null;
   }
+  if (!context.extensionSettings.translateViaLlm.template) {
+    st_echo('error', 'Missing template, set a template in the Translate via LLM settings');
+    return null;
+  }
 
   const targetLanguageCode = context.extensionSettings.translate!.target_language;
   const targetLanguageText = $('#translation_target_language')

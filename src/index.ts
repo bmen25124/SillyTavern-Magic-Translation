@@ -1,6 +1,11 @@
 import { context, extensionName, st_echo, st_updateMessageBlock } from './config';
 import { getGeneratePayload, sendGenerateRequest } from './generate';
 
+const DEFAULT_PROMPT = `Translate this to {{language}}:
+\`\`\`
+{{prompt}}
+\`\`\``;
+
 async function initUI() {
   if (!context.extensionSettings.connectionManager) {
     st_echo('error', 'Connection Manager is required to use Translate via LLM');
@@ -12,13 +17,14 @@ async function initUI() {
   }
 
   if (!context.extensionSettings.translateViaLlm) {
-    context.extensionSettings.translateViaLlm = {
-      selectedProfile: '',
-      template: `Translate this to {{language}}:
-\`\`\`
-{{prompt}}
-\`\`\``,
-    };
+    context.extensionSettings.translateViaLlm = {};
+  }
+
+  if (context.extensionSettings.translateViaLlm.selectedProfile === undefined) {
+    context.extensionSettings.translateViaLlm.selectedProfile = '';
+  }
+  if (context.extensionSettings.translateViaLlm.template === undefined) {
+    context.extensionSettings.translateViaLlm.template = DEFAULT_PROMPT;
   }
 
   const settingsHtml = await context.renderExtensionTemplateAsync(`third-party/${extensionName}`, 'templates/settings');
@@ -64,6 +70,11 @@ async function initUI() {
     }
   });
 
+  settingsElement.find('.restore_default').on('click', function () {
+    promptElement.val(DEFAULT_PROMPT);
+    promptElement.trigger('change');
+  });
+
   const showTranslateButton = $(
     `<div title="Translate via LLM" class="mes_button mes_translate_via_llm_button fa-solid fa-globe interactable" tabindex="0"></div>`,
   );
@@ -89,6 +100,11 @@ async function initUI() {
         st_updateMessageBlock(messageId, message);
         return;
       }
+      if (!context.extensionSettings.translateViaLlm.selectedProfile) {
+        st_echo('error', 'Select a connection profile');
+        return;
+      }
+
       const result = getGeneratePayload(context.extensionSettings.translateViaLlm.selectedProfile, message.mes);
       if (!result) {
         return;
