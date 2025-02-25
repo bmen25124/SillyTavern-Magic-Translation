@@ -112,6 +112,10 @@ function initDefaultValues() {
     context.extensionSettings.magicTranslation.autoOpenSettings = defaultSettings.autoOpenSettings;
     anyChange = true;
   }
+  if (context.extensionSettings.magicTranslation.showMissingWarning === undefined) {
+    context.extensionSettings.magicTranslation.showMissingWarning = defaultSettings.showMissingWarning;
+    anyChange = true;
+  }
 
   if (anyChange) {
     context.saveSettingsDebounced();
@@ -161,7 +165,7 @@ async function initSettings() {
         if (profile.id === currentProfileId) {
           foundCurrentProfile = true;
         }
-      } else {
+      } else if (context.extensionSettings.magicTranslation.showMissingWarning) {
         const missing = [];
         if (!profile.api) missing.push('API');
         if (!profile.preset) missing.push('preset');
@@ -249,6 +253,14 @@ async function initSettings() {
   autoOpenSettingsElement.on('change', function () {
     const checked = autoOpenSettingsElement.prop('checked');
     context.extensionSettings.magicTranslation.autoOpenSettings = checked;
+    context.saveSettingsDebounced();
+  });
+
+  const showMissingWarningElement = settingsElement.find('.show_missing_warning');
+  showMissingWarningElement.prop('checked', context.extensionSettings.magicTranslation.showMissingWarning);
+  showMissingWarningElement.on('change', function () {
+    const checked = showMissingWarningElement.prop('checked');
+    context.extensionSettings.magicTranslation.showMissingWarning = checked;
     context.saveSettingsDebounced();
   });
 }

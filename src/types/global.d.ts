@@ -57,6 +57,7 @@ declare global {
         internalLanguage?: string;
         autoMode?: AutoModeOptions;
         autoOpenSettings?: boolean;
+        showMissingWarning?: boolean;
       };
     };
     saveSettingsDebounced: () => void;

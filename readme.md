@@ -80,6 +80,7 @@ Make sure the model speaks in your language. Some models might not allow NSFW co
 
 *   **Filter Code Block:** When checked, the extension extracts text between the \`\`\` code blocks.
 *   **Auto Open Settings when profile not selected:** When checked, the extension automatically opens the settings when a connection profile hasn't been defined.
+*   **Show warnings for missing profile requirements:** When checked, displays warning messages when a profile is missing required components (API/preset/model) during profile refresh.
 
 ## Important Notes
 

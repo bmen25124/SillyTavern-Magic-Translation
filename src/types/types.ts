@@ -89,6 +89,7 @@ export const defaultSettings = {
   internalLanguage: 'en',
   autoMode: AutoModeOptions.NONE,
   autoOpenSettings: true,
+  showMissingWarning: true,
 };
 
 export const languageCodes: Record<string, string> = {
