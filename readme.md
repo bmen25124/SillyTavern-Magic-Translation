@@ -1,6 +1,6 @@
 # SillyTavern Magic Translation
 
-**For using the extension, you need to be on `staging` branch of SillyTavern.**
+**To use the extension, you need to be on the `staging` branch of SillyTavern.**
 
 ## Overview
 
@@ -27,7 +27,7 @@ https://github.com/bmen25124/SillyTavern-Magic-Translation
 
 1.  **Configure Connection Profile:**
     *   Click the plug icon to open SillyTavern's API settings.
-    *   Create an connection profile. This profile will be used to send translation requests to the LLM.
+    *   Create a connection profile. This profile will be used to send translation requests to the LLM.
 
 2.  **Configure Translation Settings:**
     *   Go to the "Magic Translation" panel in the extension settings.
@@ -45,8 +45,8 @@ https://github.com/bmen25124/SillyTavern-Magic-Translation
 
 ## Why not use the official Chat Translation extension?
 
-* The official `Chat Translation` extension is uses APIs like Google, Yandex, etc. They are not as powerful as LLMs. They are too formal and not suitable for casual conversations.
-* There is only one powerful Translation API, which is [DeepL](https://www.deepl.com), but free users are limited to 500,000 characters per month. Cheapest plan is `$8.74` per month for 1,000,000 characters. In the other side, LLMs are mostly $0.3-$2 per 1,000,000 tokens. (token = 2-3~ letters)
+* The official `Chat Translation` extension uses APIs like Google, Yandex, etc. They are not as powerful as LLMs. They are too formal and not suitable for casual conversations.
+* There is only one powerful Translation API, which is [DeepL](https://www.deepl.com), but free users are limited to 500,000 characters per month. The cheapest plan is `$8.74` per month for 1,000,000 characters. On the other side, LLMs are mostly $0.3-$2 per 1,000,000 tokens. (token = 2-3~ letters)
 
 ## Recommended LLMs
 
