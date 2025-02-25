@@ -1,123 +1,77 @@
-# SillyTavern Custom Scenario
+# SillyTavern LLM Translator
 
-An extension that lets you create interactive scenarios with variables and basic scripting.
+## Overview
 
-## What it does
-- Create scenarios with custom questions
-- Use variables in the description/first message/personality/scenario/character note.
-- Add simple scripts to make things dynamic. (JavaScript)
-- Import/export scenarios as JSON/PNG
+The SillyTavern LLM Translator is a SillyTavern extension that provides real-time translation of chat messages using configured Language Model APIs. You can configure the translation target language, the prompt used for translation, and which messages should be automatically translated.
 
-## Question types
-- Text input
-- Dropdown select
-- Checkbox
+## Key Features
 
-## How to use
+*   **Real-time Translation:** Translate chat messages using LLMs.
+*   **Configurable API:** Uses [Connection Manager](https://docs.sillytavern.app/usage/core-concepts/connection-profiles/) profiles to connect to various LLM APIs.
+*   **Customizable Prompts:** Modify the prompt used for translation to fine-tune results.
+*   **Automatic Translation Modes:** Translate incoming responses, outgoing input, or both automatically.
 
-### Create a scenario
+## Installation
 
-Click the puzzle icon on the character create/edit sidebar.
+Install via the SillyTavern extension installer:
 
-![create icon](images/create-icon.png)
-
-Fill out the form.
-
-![create dialog](images/create-dialog.png)
-![question - text](images/question-text.png)
-
-
-Open _script_ accordion and test it with the preview button
-
-![simple preview in first message](images/first-message-simple-preview.png)
-
-
-Export it.
-
-### Play a scenario
-
-Click the play icon on the characters sidebar and select the JSON/PNG file.
-
-![play icon](images/play-icon.png)
-
-Fill inputs.
-
-![play dialog](images/play-dialog.png)
-
-Created card
-
-![created card](images/created-card.png)
-
-## Simple scripting
-You can write basic JavaScript to manipulate variables. For example:
-
-If your description is:
-```
-{{user}} just received a package with a gift from an unknown sender. The package is labeled as containing {{gift}}.
-
-You also received a card with the following message: {{occasionMessage}}
+```txt
+https://github.com/bmen25124/SillyTavern-LLM-Translator
 ```
 
-Assume this was the answer to the question:
-```yml
-gift: "a book"
-message: "birthday"
-# As you see, there is no `occasionMessage`
-```
+## How to Use
 
-You can write a script for setting `occasionMessage`
-```js
-variables.occasionMessage = `Happy {{message}}! Enjoy your new {{gift}}`;
-```
+1.  **Configure Connection Profile:**
+    *   Click the plug icon to open SillyTavern's API settings.
+    *   Create an connection profile. This profile will be used to send translation requests to the LLM.
 
-Or:
-```js
-variables.occasionMessage = `Happy ${variables.message}! Enjoy your new ${variables.gift}`;
-```
+2.  **Configure Translation Settings:**
+    *   Go to the "Translate via LLM" panel in the extension settings.
+    *   Select a Connection Profile from the dropdown.
+    *   Select desired Auto Mode or leave None if only manual translation is needed.
+    *   Choose the Target Language for translation.
 
-Or:
-```js
-variables.occasionMessage = "Happy " + variables.message + "! Enjoy your new " + variables.gift;
-```
+3.  **Customize Translation Prompt (Optional):**
+    *   Modify the default prompt in the text area to customize translation behavior.
+    *   Use `{{prompt}}` as a placeholder for the text to be translated.
+    *   Use `{{language}}` as a placeholder for the target language name.
 
-Output will be:
-```
-{{user}} just received a package with a gift from an unknown sender. The package is labeled as containing a book.
+4.  **Use Manual Translation:**
+    *   In the chat interface, click the globe icon on a message to translate it.
 
-You also received a card with the following message: Happy birthday! Enjoy your new book
-```
+## Settings
 
-## Scripting Details
-* `variables` is an object that holds all the variables. Aka the answers to the questions.
-* All variables can be accessed and modified.
-* Example usage: (Let's say question id is `gift`)
-    * If question type is _text_, `variables.gift`
-    * If the question type is _dropdown_, `variables.gift.value` and `variables.gift.label`. When creating the card, `variables.gift.label` is used.
-    * If question type is _checkbox_, `variables.gift`. (boolean)
-* `Show Script` is a script that decides whether to show the question or not in the play dialog. Example:  `return variables.gift === "birthday"` will show the question only if the answer is "birthday".
-* In preview, empty strings are showing as `{{variable}}` but in the created card, they are not shown.
-* We can get single lorebook entry by `await world.getFirst({name?: string, keyword: string})`. Example usage:
-```js
-const info = await world.getFirst({keyword: "triggerWord"}); // name is optional, default name is character lorebook
-if (info) {
-    variables.f_companion_content = info.content;
-}
-```
-* We can get all lorebook entries by `await world.getAll({name?: string, keyword: string})`. Example usage:
-```js
-const infos = await world.getAll({keyword: "triggerWord"}); // name is optional, default name is character lorebook
-if (infos && infos.length > 0) {
-    variables.f_companion_content = infos[0].content;
-}
-```
+*   **Connection Profile:** The connection profile from Connection Manager that will be used for translation.
+*   **Auto Mode:**
+    *   `None`: No automatic translation.
+    *   `Responses`: Automatically translate messages received from the LLM.
+    *   `Inputs`: Automatically translate messages you send to the LLM.
+    *   `Both`: Automatically translate both incoming and outgoing messages.
+*   **Target Language:** The language to translate the text into.
+*   **Prompt:** The prompt used to instruct the LLM to translate the text. Default:
 
+    ```text
+    Translate this text to {{language}}. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
 
-## FAQ:
-### Why did you create this?
-I saw this on [AIDungeon](https://play.aidungeon.com/) and liked it. You can see in this [reddit post](https://www.reddit.com/r/SillyTavernAI/comments/1i59jem/scenario_system_similar_to_ai_dungeon_nsfw_for/) with an example.
+    ```
+    {{prompt}}
+    ```
 
-### Why version is _0.4.2_
-It is because of UI, not functionality.
+    Important: Your response must follow this exact format with the translation enclosed in code blocks (``\`).
+    ```
 
-## Known Issues
-* Tags are not importing to SillyTavern because I don't want to show `Import Tags` dialog for each play. So I'm planning to add a extension setting to enable/disable this.
+*   **Filter Code Block:** When checked, the extension extracts text between the \`\`\` code blocks.
+*   **Auto Open Settings when profile not selected:** When checked, the extension automatically opens the settings when a connection profile hasn't been defined.
+
+## Troubleshooting
+
+*   **Extension Not Showing:**
+    *   Ensure the extension is properly installed and enabled in the Extensions tab.
+    *   Reload SillyTavern.
+*   **Translation Errors:**
+    *   Verify that the selected Connection Profile is configured correctly and has a valid API key.
+    *   Check the LLM's response for errors or issues.
+    *   Adjust the translation prompt if necessary.
+*   **Automatic Translation Not Working:**
+    *   Ensure the Auto Mode is set correctly.
+    *   Verify that the selected Connection Profile is valid.

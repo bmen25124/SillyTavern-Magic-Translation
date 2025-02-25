@@ -320,6 +320,7 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     }
   } catch (error) {
     console.error(error);
+    st_echo('error', `Translation failed: ${error}`);
   } finally {
     if (message) {
       generating = generating.filter((id) => id !== messageId);
