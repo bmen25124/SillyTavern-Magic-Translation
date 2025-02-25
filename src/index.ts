@@ -26,15 +26,20 @@ async function initUI() {
   $(document).on('click', '.mes_translate_via_llm_button', function () {
     const messageBlock = $(this).closest('.mes');
     const messageId = Number(messageBlock.attr('mesid'));
+    const message = context.chat[messageId];
+    if (!message) {
+      st_echo('error', `Could not find message with id ${messageId}`);
+      return;
+    }
+    if (message?.extra?.display_text) {
+      delete message.extra.display_text;
+      st_updateMessageBlock(messageId, message);
+      return;
+    }
     generateMessage(messageId);
   });
 
   context.eventSource.on(EventNames.MESSAGE_UPDATED, (messageId: number) => {
-    if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
-      generateMessage(messageId);
-    }
-  });
-  context.eventSource.on(EventNames.MESSAGE_SWIPED, (messageId: number) => {
     if (incomingTypes.includes(context.extensionSettings.translateViaLlm.autoMode!)) {
       generateMessage(messageId);
     }
@@ -186,31 +191,28 @@ async function initSettings() {
 }
 
 async function generateMessage(messageId: number, impersonate: boolean = false) {
-  if (typeof messageId === 'string') {
-    messageId = parseInt(messageId);
-  }
-  const message = context.chat[messageId];
+  const message = !impersonate ? context.chat[messageId] : undefined;
   if (!message) {
     st_echo('error', `Could not find message with id ${messageId}`);
     return;
   }
-  if (generating.includes(messageId)) {
-    st_echo('error', 'Translation is already in progress');
+  if (generating.includes(messageId) && message) {
+    st_echo('warning', 'Translation is already in progress');
     return;
   }
-  generating.push(messageId);
+  if (message) {
+    generating.push(messageId);
+  }
   try {
-    if (message?.extra?.display_text) {
-      delete message.extra.display_text;
-      st_updateMessageBlock(messageId, message);
-      return;
-    }
     if (!context.extensionSettings.translateViaLlm.profile) {
       st_echo('error', 'Select a connection profile');
       return;
     }
 
-    const result = getGeneratePayload(context.extensionSettings.translateViaLlm.profile, message.mes);
+    const result = getGeneratePayload(
+      context.extensionSettings.translateViaLlm.profile,
+      message?.mes ?? (messageId as unknown as string),
+    );
     if (!result) {
       return;
     }
@@ -227,7 +229,7 @@ async function generateMessage(messageId: number, impersonate: boolean = false) 
       }
     }
 
-    if (!impersonate) {
+    if (message) {
       if (typeof message.extra !== 'object') {
         message.extra = {};
       }
@@ -239,7 +241,9 @@ async function generateMessage(messageId: number, impersonate: boolean = false) 
   } catch (error) {
     console.error(error);
   } finally {
-    generating = generating.filter((id) => id !== messageId);
+    if (message) {
+      generating = generating.filter((id) => id !== messageId);
+    }
   }
 }
 
