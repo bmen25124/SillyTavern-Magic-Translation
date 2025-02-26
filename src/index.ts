@@ -156,7 +156,7 @@ async function initSettings() {
 
     for (const profile of context.extensionSettings.connectionManager!.profiles) {
       // Only add profiles that have all required properties
-      if (profile.api && profile.preset && profile.model) {
+      if (profile.api && profile.preset) {
         const option = $('<option></option>');
         option.attr('value', profile.id);
         option.text(profile.name || profile.id);
@@ -169,7 +169,6 @@ async function initSettings() {
         const missing = [];
         if (!profile.api) missing.push('API');
         if (!profile.preset) missing.push('preset');
-        if (!profile.model) missing.push('model');
         st_echo(
           'warning',
           `Profile "${profile.name || profile.id}" is not available for translation: missing ${missing.join(', ')}`,

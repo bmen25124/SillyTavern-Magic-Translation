@@ -255,10 +255,6 @@ export function getTextGenData(
   preset: any,
   profile: ConnectionProfile,
 ) {
-  if (!profile.model) {
-    st_echo('error', 'Select a connection profile that has a model');
-    return null;
-  }
   if (!type) {
     st_echo('error', 'Select a connection profile that has a type');
     return null;
@@ -478,12 +474,22 @@ export async function sendGenerateRequest(
     cache: 'no-cache',
     signal: new AbortController().signal, // No cancellation for now
   });
-
   if (!response.ok) {
     throw new Error(`Got response status ${response.status}`);
   }
 
-  const data = await response.json();
+  const text = await response.text();
+  if (!text || !text.trim()) {
+    throw new Error(`Got empty response`);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Failed to parse response as JSON: ${e}`);
+  }
+
   if (data.error) {
     const message = data.error.message || response.statusText || `Unknown error`;
     st_echo('error', message);
