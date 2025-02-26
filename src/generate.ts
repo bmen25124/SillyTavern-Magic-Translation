@@ -318,7 +318,7 @@ export function getTextGenData(
     mirostat_mode: preset.mirostat_mode,
     mirostat_tau: preset.mirostat_tau,
     mirostat_eta: preset.mirostat_eta,
-    custom_token_bans: [],
+    custom_token_bans: [textgen_types.APHRODITE, textgen_types.MANCER].includes(type) ? [] : '',
     banned_strings: [],
     api_type: type,
     api_server: context.getTextGenServer(type),
