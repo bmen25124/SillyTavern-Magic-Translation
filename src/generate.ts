@@ -56,7 +56,7 @@ export function getGeneratePayload(
 
   if (selectedApiMap.selected === 'openai') {
     return {
-      body: getOpenAIData(selectedApiMap, prompt, preset),
+      body: getOpenAIData(selectedApiMap, prompt, preset, profile.model),
       url: '/api/backends/chat-completions/generate',
       type: selectedApiMap.selected,
     };
@@ -73,6 +73,7 @@ export function getOpenAIData(
   selectedApiMap: { selected: string; source?: string },
   replacedPrompt: string,
   preset: any,
+  model?: string,
 ) {
   const chat_completion_source = selectedApiMap.source || chat_completion_sources.OPENAI;
   const isClaude = chat_completion_source == chat_completion_sources.CLAUDE;
@@ -96,7 +97,7 @@ export function getOpenAIData(
         content: replacedPrompt,
       },
     ],
-    model: context.getChatCompletionModel(chat_completion_source),
+    model: model,
     temperature: preset.temperature,
     frequency_penalty: preset.freq_pen,
     presence_penalty: preset.pres_pen,
