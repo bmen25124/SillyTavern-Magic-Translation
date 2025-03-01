@@ -92,6 +92,7 @@ declare global {
       };
     };
     getTextGenServer: (type?: string) => string;
+    saveChat: () => Promise<void>;
   }
 
   const SillyTavern: {

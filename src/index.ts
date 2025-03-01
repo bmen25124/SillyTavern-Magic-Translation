@@ -354,6 +354,7 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
         message.extra.display_text = displayText;
       }
       st_updateMessageBlock(messageId, message);
+      await context.saveChat();
     } else {
       $('#send_textarea').val(displayText);
     }
