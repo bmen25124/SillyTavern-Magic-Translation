@@ -55,7 +55,7 @@ Make sure the model speaks in your language. Some models might not allow NSFW co
 *   **Google -> Gemini Flash:** Price-efficient. (input: $0.1, output: $0.4)
 *   **Cohere -> c4ai-aya-expanse-8b/c4ai-aya-expanse-32b:** Cheap enough (input: $0.5, output: $1.5)
 *   **openai-4o/claude-sonnet-3.x:** Little pricey. (input: $2.5/$3.5, output: $10/$15)
-*   Depending on your language, you can find many other models.
+*   Depending on your language, you can find [many other models](https://openrouter.ai/rankings/translation?view=week).
 
 ## Settings
 
