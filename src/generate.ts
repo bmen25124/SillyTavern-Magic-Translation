@@ -93,7 +93,7 @@ export function getOpenAIData(
   generate_data = {
     messages: [
       {
-        role: 'system',
+        role: 'user',
         content: replacedPrompt,
       },
     ],
