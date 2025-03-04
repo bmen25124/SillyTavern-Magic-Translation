@@ -99,12 +99,11 @@ export function getOpenAIData(
     ],
     model: model,
     temperature: preset.temperature,
-    frequency_penalty: preset.freq_pen,
-    presence_penalty: preset.pres_pen,
+    frequency_penalty: preset.frequency_penalty,
+    presence_penalty: preset.presence_penalty,
     top_p: preset.top_p,
     max_tokens: Math.max(MAX_TOKENS, preset.openai_max_tokens),
     stream: false, // Maybe optional?
-    stop: [], // Don't care
     chat_completion_source: chat_completion_source,
     n: preset.n > 1 && isOAI ? preset.n : undefined,
     user_name: name1, // Don't care
