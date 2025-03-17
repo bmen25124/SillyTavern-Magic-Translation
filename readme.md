@@ -1,7 +1,5 @@
 # SillyTavern Magic Translation
 
-**To use the extension, you need to be on the `staging` branch of SillyTavern.**
-
 ## Overview
 
 A [SillyTavern](https://docs.sillytavern.app/) extension that provides real-time translation of chat messages using configured Language Model APIs. You can configure the translation target language, the prompt used for translation, and which messages should be automatically translated.
