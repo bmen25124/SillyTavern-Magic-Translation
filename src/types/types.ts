@@ -77,7 +77,7 @@ export enum EventNames {
 
 export const defaultSettings = {
   profile: 'google',
-  template: `Translate this text to {{language}}. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
+  template: `Translate this text to {{language}}. Respect markdown. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
 
   \`\`\`
   {{prompt}}

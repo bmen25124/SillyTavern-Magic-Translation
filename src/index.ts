@@ -214,17 +214,17 @@ async function initSettings() {
     }
   });
 
+  settingsElement.find('.restore_default').on('click', function () {
+    promptElement.val(defaultSettings.template);
+    promptElement.trigger('change');
+  });
+
   const filterCodeBlockElement = settingsElement.find('.filter_code_block');
   filterCodeBlockElement.prop('checked', context.extensionSettings.magicTranslation.filterCodeBlock);
   filterCodeBlockElement.on('change', function () {
     const checked = filterCodeBlockElement.prop('checked');
     context.extensionSettings.magicTranslation.filterCodeBlock = checked;
     context.saveSettingsDebounced();
-  });
-
-  settingsElement.find('.restore_default').on('click', function () {
-    promptElement.val(defaultSettings.template);
-    promptElement.trigger('change');
   });
 
   const targetLanguageElement = settingsElement.find('.target_language');
