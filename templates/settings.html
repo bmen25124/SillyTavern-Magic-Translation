@@ -33,6 +33,11 @@
                 </select>
 
                 <div class="title_restorable">
+                    <label>Prompt Preset</label>
+                </div>
+                <select class="text_pole prompt_preset" title="Select a Prompt"></select>
+
+                <div class="title_restorable">
                     <label for="prompt">Prompt</label>
                     <button
                         class="menu_button fa-solid fa-undo interactable restore_default"
@@ -41,25 +46,12 @@
                     ></button>
                 </div>
 
-                <textarea class="text_pole textarea_compact prompt" rows="4">
-Translate this to {{language}}:
-```
-{{prompt}}
-```
-                </textarea>
+                <textarea class="text_pole textarea_compact prompt" rows="4"></textarea>
 
                 <div class="flex-container">
                     <label class="checkbox_label">
                         <input type="checkbox" class="filter_code_block" />
                         Filter Code Block: Get text between ``` marks (Recommended)
-                    </label>
-                    <label class="checkbox_label">
-                        <input type="checkbox" class="auto_open_settings" />
-                        Auto open settings when profile not selected
-                    </label>
-                    <label class="checkbox_label">
-                        <input type="checkbox" class="show_missing_warning" />
-                        Show warnings for missing profile requirements
                     </label>
                 </div>
             </div>

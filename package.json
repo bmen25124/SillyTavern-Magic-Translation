@@ -4,11 +4,12 @@
     "description": "A web application using pure JS and SCSS.",
     "main": "src/scripts/main.js",
     "scripts": {
-        "dev": "cross-env NODE_ENV=development sass src/styles/main.scss dist/style.css --source-map & cross-env NODE_ENV=development webpack --mode development --watch",
-        "build": "cross-env NODE_ENV=production sass src/styles/main.scss dist/style.css --no-source-map && cross-env NODE_ENV=production webpack --mode production",
+        "dev": "cross-env NODE_ENV=development sass src/styles/main.scss dist/style.css --source-map & cross-env NODE_ENV=development webpack --mode development --config webpack.config.cjs --watch",
+        "build": "cross-env NODE_ENV=production sass src/styles/main.scss dist/style.css --no-source-map && cross-env NODE_ENV=production webpack --mode production --config webpack.config.cjs",
         "test": "jest",
         "prettify": "prettier --write \"src/**/*.ts\" \"templates/**/*.html\""
     },
+    "type": "module",
     "keywords": [],
     "author": "",
     "license": "ISC",
@@ -34,5 +35,6 @@
         "webpack-cli": "^5.1.4"
     },
     "dependencies": {
+        "sillytavern-utils-lib": "^1.0.24"
     }
 }

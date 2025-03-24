@@ -1,32 +1,70 @@
-import { context, extensionName, st_echo, st_updateMessageBlock } from './config';
-import { getGeneratePayload, sendGenerateRequest } from './generate';
-import { AutoModeOptions, defaultSettings, EventNames, languageCodes } from './types/types';
+import { ExtensionSettingsManager, buildPresetSelect } from 'sillytavern-utils-lib';
+import { context, extensionName, st_echo, st_updateMessageBlock } from './config.js';
+import { getGeneratePayload, sendGenerateRequest } from './generate.js';
+import { EventNames } from 'sillytavern-utils-lib/types';
+import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
+import { languageCodes } from './types/types.js';
+
+interface PromptPreset {
+  content: string;
+  filterCodeBlock: boolean;
+}
+
+interface ExtensionSettings {
+  version: string;
+  formatVersion: string;
+  profile: string;
+  targetLanguage: string;
+  internalLanguage: string;
+  autoMode: AutoModeOptions;
+  promptPreset: string;
+  promptPresets: Record<string, PromptPreset>;
+}
+
+const VERSION = '0.1.1';
+const FORMAT_VERSION = 'F_1.0';
+
+const DEFAULT_PROMPT = `Translate this text to {{language}}. Respect markdown. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
+
+\`\`\`
+{{prompt}}
+\`\`\`
+
+Important: Your response must follow this exact format with the translation enclosed in code blocks (\`\`\`).`;
+
+const defaultSettings: ExtensionSettings = {
+  version: VERSION,
+  formatVersion: FORMAT_VERSION,
+  profile: '',
+  targetLanguage: 'en',
+  internalLanguage: 'en',
+  autoMode: AutoModeOptions.NONE,
+  promptPreset: 'default',
+  promptPresets: {
+    default: {
+      content: DEFAULT_PROMPT,
+      filterCodeBlock: true,
+    },
+  },
+};
+
+// Keys for extension settings
+const EXTENSION_KEY = 'magicTranslation';
+
+// Message IDs that are currently being generated
+let generating: number[] = [];
+
+const settingsManager = new ExtensionSettingsManager<ExtensionSettings>(EXTENSION_KEY, defaultSettings);
 
 const incomingTypes = [AutoModeOptions.RESPONSES, AutoModeOptions.BOTH];
 const outgoingTypes = [AutoModeOptions.INPUT, AutoModeOptions.BOTH];
 
-const extensionSettingsButton = $('#extensions-settings-button .drawer-toggle');
-const extensionSettingsVisible = () => {
-  return $('#rm_extensions_block').is(':visible');
-};
-let extensionBlockButton: JQuery<HTMLElement>;
-const extensionBlockVisible = () => {
-  return $('.magic-translation-settings .inline-drawer-content').is(':visible');
-};
-
-const sysSettingsButton = $('#sys-settings-button .drawer-toggle');
-
-/**
- * Message IDs that are currently being generated
- */
-let generating: number[] = [];
 async function initUI() {
   if (!context.extensionSettings.connectionManager) {
     st_echo('error', 'Connection Manager is required to use Magic Translation');
     return;
   }
 
-  initDefaultValues();
   await initSettings();
 
   const showTranslateButton = $(
@@ -50,83 +88,39 @@ async function initUI() {
     generateMessage(messageId, 'incomingMessage');
   });
 
+  const settings = settingsManager.getSettings();
   context.eventSource.on(EventNames.MESSAGE_UPDATED, (messageId: number) => {
-    if (incomingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
+    if (incomingTypes.includes(settings.autoMode)) {
       generateMessage(messageId, 'incomingMessage');
     }
   });
   context.eventSource.on(EventNames.IMPERSONATE_READY, (messageId: number) => {
-    if (outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
+    if (outgoingTypes.includes(settings.autoMode)) {
       generateMessage(messageId, 'impersonate');
     }
   });
 
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.CHARACTER_MESSAGE_RENDERED, (messageId: number) => {
-    if (incomingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
+    if (incomingTypes.includes(settings.autoMode)) {
       generateMessage(messageId, 'incomingMessage');
     }
   });
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.USER_MESSAGE_RENDERED, (messageId: number) => {
-    if (outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
+    if (outgoingTypes.includes(settings.autoMode)) {
       generateMessage(messageId, 'userInput');
     }
   });
 }
 
-function initDefaultValues() {
-  let anyChange = false;
-  if (!context.extensionSettings.magicTranslation) {
-    context.extensionSettings.magicTranslation = {};
-    anyChange = true;
-  }
-
-  if (context.extensionSettings.magicTranslation.profile === undefined) {
-    context.extensionSettings.magicTranslation.profile = defaultSettings.profile;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.template === undefined) {
-    context.extensionSettings.magicTranslation.template = defaultSettings.template;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.filterCodeBlock === undefined) {
-    context.extensionSettings.magicTranslation.filterCodeBlock = defaultSettings.filterCodeBlock;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.targetLanguage === undefined) {
-    context.extensionSettings.magicTranslation.targetLanguage =
-      context.extensionSettings.translate?.target_language || defaultSettings.targetLanguage;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.internalLanguage === undefined) {
-    context.extensionSettings.magicTranslation.internalLanguage = defaultSettings.internalLanguage;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.autoMode === undefined) {
-    context.extensionSettings.magicTranslation.autoMode =
-      context.extensionSettings.translate?.auto_mode || defaultSettings.autoMode;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.autoOpenSettings === undefined) {
-    context.extensionSettings.magicTranslation.autoOpenSettings = defaultSettings.autoOpenSettings;
-    anyChange = true;
-  }
-  if (context.extensionSettings.magicTranslation.showMissingWarning === undefined) {
-    context.extensionSettings.magicTranslation.showMissingWarning = defaultSettings.showMissingWarning;
-    anyChange = true;
-  }
-
-  if (anyChange) {
-    context.saveSettingsDebounced();
-  }
-}
-
 async function initSettings() {
+  const settings = settingsManager.getSettings();
+
   const extendedLanguageCodes = Object.entries(languageCodes).reduce(
     (acc, [name, code]) => {
       // @ts-ignore
-      acc[code] = { name: name, selected: code === context.extensionSettings.magicTranslation.targetLanguage };
+      acc[code] = { name: name, selected: code === settings.targetLanguage };
       return acc;
     },
     {} as Record<string, { name: string; selected: boolean }>,
@@ -140,18 +134,62 @@ async function initSettings() {
   $('#extensions_settings').append(settingsHtml);
 
   const settingsElement = $('.magic-translation-settings');
+  const promptElement = settingsElement.find('.prompt');
+  const filterCodeBlockElement = settingsElement.find('.filter_code_block');
 
+  // Use buildPresetSelect for preset management
+  buildPresetSelect('.magic-translation-settings select.prompt_preset', {
+    label: 'prompt',
+    initialValue: settings.promptPreset,
+    initialList: Object.keys(settings.promptPresets),
+    readOnlyValues: ['default'],
+    onSelectChange: async (_previousValue, newValue) => {
+      const newPresetValue = newValue ?? 'default';
+      settings.promptPreset = newPresetValue;
+      const preset = settings.promptPresets[newPresetValue];
+
+      promptElement.val(preset.content);
+      filterCodeBlockElement.prop('checked', preset.filterCodeBlock);
+
+      settingsManager.saveSettings();
+    },
+    create: {
+      onAfterCreate: (value) => {
+        const currentPreset = settings.promptPresets[settings.promptPreset];
+        settings.promptPresets[value] = {
+          content: currentPreset.content,
+          filterCodeBlock: currentPreset.filterCodeBlock,
+        };
+        settingsManager.saveSettings();
+      },
+    },
+    rename: {
+      onAfterRename: (previousValue, newValue) => {
+        settings.promptPresets[newValue] = settings.promptPresets[previousValue];
+        delete settings.promptPresets[previousValue];
+        settingsManager.saveSettings();
+      },
+    },
+    delete: {
+      onAfterDelete: (value) => {
+        delete settings.promptPresets[value];
+        settingsManager.saveSettings();
+      },
+    },
+  });
+
+  // Profile selection
   const selectElement = settingsElement.find('.profile');
 
   let refreshing = false;
-  extensionBlockButton = settingsElement.find('.inline-drawer-toggle');
+  const extensionBlockButton = settingsElement.find('.inline-drawer-toggle');
   extensionBlockButton.on('click', function () {
     refreshing = true;
     // Remove all children except the empty option
     const emptyOption = selectElement.find('option[value=""]');
     selectElement.empty().append(emptyOption);
 
-    const currentProfileId = context.extensionSettings.magicTranslation.profile;
+    const currentProfileId = settings.profile;
     let foundCurrentProfile = false;
 
     for (const profile of context.extensionSettings.connectionManager!.profiles) {
@@ -165,14 +203,6 @@ async function initSettings() {
         if (profile.id === currentProfileId) {
           foundCurrentProfile = true;
         }
-      } else if (context.extensionSettings.magicTranslation.showMissingWarning) {
-        const missing = [];
-        if (!profile.api) missing.push('API');
-        if (!profile.preset) missing.push('preset');
-        st_echo(
-          'warning',
-          `Profile "${profile.name || profile.id}" is not available for translation: missing ${missing.join(', ')}`,
-        );
       }
     }
 
@@ -181,8 +211,8 @@ async function initSettings() {
         'warning',
         `Previously selected profile "${currentProfileId}" no longer exists. Please select a new profile.`,
       );
-      context.extensionSettings.magicTranslation.profile = '';
-      context.saveSettingsDebounced();
+      settings.profile = '';
+      settingsManager.saveSettings();
     }
 
     refreshing = false;
@@ -193,74 +223,55 @@ async function initSettings() {
       return;
     }
     const selected = selectElement.val() as string;
-    if (selected !== context.extensionSettings.magicTranslation.profile) {
-      context.extensionSettings.magicTranslation.profile = selected;
-      context.saveSettingsDebounced();
+    if (selected !== settings.profile) {
+      settings.profile = selected;
+      settingsManager.saveSettings();
     }
   });
 
+  const sysSettingsButton = $('#sys-settings-button .drawer-toggle');
   const redirectSysSettings = settingsElement.find('.redirect_sys_settings');
   redirectSysSettings.on('click', function () {
     sysSettingsButton.trigger('click');
   });
 
-  const promptElement = settingsElement.find('.prompt');
-  promptElement.val(context.extensionSettings.magicTranslation.template!);
+  promptElement.val(settings.promptPresets[settings.promptPreset].content);
   promptElement.on('change', function () {
     const template = promptElement.val() as string;
-    if (template !== context.extensionSettings.magicTranslation.template) {
-      context.extensionSettings.magicTranslation.template = template;
-      context.saveSettingsDebounced();
-    }
+    settings.promptPresets[settings.promptPreset].content = template;
+    settingsManager.saveSettings();
   });
 
-  settingsElement.find('.restore_default').on('click', function () {
-    promptElement.val(defaultSettings.template);
-    promptElement.trigger('change');
+  settingsElement.find('.restore_default').on('click', async function () {
+    const confirm = await context.Popup.show.confirm('Restore default prompt?', 'Restore Default');
+    if (!confirm) return;
+
+    promptElement.val(DEFAULT_PROMPT);
+    settings.promptPresets[settings.promptPreset].content = DEFAULT_PROMPT;
+    settingsManager.saveSettings();
   });
 
-  const filterCodeBlockElement = settingsElement.find('.filter_code_block');
-  filterCodeBlockElement.prop('checked', context.extensionSettings.magicTranslation.filterCodeBlock);
+  filterCodeBlockElement.prop('checked', settings.promptPresets[settings.promptPreset].filterCodeBlock);
   filterCodeBlockElement.on('change', function () {
     const checked = filterCodeBlockElement.prop('checked');
-    context.extensionSettings.magicTranslation.filterCodeBlock = checked;
-    context.saveSettingsDebounced();
+    settings.promptPresets[settings.promptPreset].filterCodeBlock = checked;
+    settingsManager.saveSettings();
   });
 
   const targetLanguageElement = settingsElement.find('.target_language');
-  targetLanguageElement.val(context.extensionSettings.magicTranslation.targetLanguage!);
+  targetLanguageElement.val(settings.targetLanguage);
   targetLanguageElement.on('change', function () {
     const targetLanguage = targetLanguageElement.val() as string;
-    if (targetLanguage !== context.extensionSettings.magicTranslation.targetLanguage) {
-      context.extensionSettings.magicTranslation.targetLanguage = targetLanguage;
-      context.saveSettingsDebounced();
-    }
+    settings.targetLanguage = targetLanguage;
+    settingsManager.saveSettings();
   });
 
   const autoModeElement = settingsElement.find('.auto_mode');
-  autoModeElement.val(context.extensionSettings.magicTranslation.autoMode!);
+  autoModeElement.val(settings.autoMode);
   autoModeElement.on('change', function () {
     const autoMode = autoModeElement.val() as string;
-    if (autoMode !== context.extensionSettings.magicTranslation.autoMode) {
-      context.extensionSettings.magicTranslation.autoMode = autoMode as AutoModeOptions;
-      context.saveSettingsDebounced();
-    }
-  });
-
-  const autoOpenSettingsElement = settingsElement.find('.auto_open_settings');
-  autoOpenSettingsElement.prop('checked', context.extensionSettings.magicTranslation.autoOpenSettings);
-  autoOpenSettingsElement.on('change', function () {
-    const checked = autoOpenSettingsElement.prop('checked');
-    context.extensionSettings.magicTranslation.autoOpenSettings = checked;
-    context.saveSettingsDebounced();
-  });
-
-  const showMissingWarningElement = settingsElement.find('.show_missing_warning');
-  showMissingWarningElement.prop('checked', context.extensionSettings.magicTranslation.showMissingWarning);
-  showMissingWarningElement.on('change', function () {
-    const checked = showMissingWarningElement.prop('checked');
-    context.extensionSettings.magicTranslation.showMissingWarning = checked;
-    context.saveSettingsDebounced();
+    settings.autoMode = autoMode as AutoModeOptions;
+    settingsManager.saveSettings();
   });
 }
 
@@ -269,40 +280,32 @@ async function initSettings() {
  * @param type userInput: User sended message, incomingMessage: Message from LLM, impersonate: Message impersonate
  */
 async function generateMessage(messageId: number, type: 'userInput' | 'incomingMessage' | 'impersonate') {
-  const profileId = context.extensionSettings.magicTranslation.profile;
+  const settings = settingsManager.getSettings();
+  const profileId = settings.profile;
   if (!profileId) {
     let warningMessage = 'Select a connection profile';
-    if (context.extensionSettings.magicTranslation.autoOpenSettings) {
-      if (!extensionSettingsVisible()) {
-        extensionSettingsButton.trigger('click');
-      }
-      if (!extensionBlockVisible()) {
-        extensionBlockButton.trigger('click');
-      }
-    }
 
     // Improve warning message
-    if (type === 'userInput' && outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
+    if (type === 'userInput' && outgoingTypes.includes(settings.autoMode)) {
       warningMessage += '. Or disable auto mode.';
-    } else if (type === 'impersonate' && outgoingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)) {
+    } else if (type === 'impersonate' && outgoingTypes.includes(settings.autoMode)) {
       warningMessage += '. Or disable auto mode.';
-    } else if (
-      type === 'incomingMessage' &&
-      incomingTypes.includes(context.extensionSettings.magicTranslation.autoMode!)
-    ) {
+    } else if (type === 'incomingMessage' && incomingTypes.includes(settings.autoMode)) {
       warningMessage += '. Or disable auto mode.';
     }
 
     st_echo('warning', warningMessage);
     return;
   }
-  if (!context.extensionSettings.magicTranslation.template) {
+
+  const selectedPreset = settings.promptPresets[settings.promptPreset];
+  if (!selectedPreset || !selectedPreset.content) {
     st_echo('error', 'Missing template, set a template in the Magic Translation settings');
     return null;
   }
 
   const message = type !== 'impersonate' ? context.chat[messageId] : undefined;
-  if (!message) {
+  if (!message && type !== 'impersonate') {
     st_echo('error', `Could not find message with id ${messageId}`);
     return;
   }
@@ -311,19 +314,25 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     return;
   }
 
-  const languageCode =
-    type === 'userInput'
-      ? context.extensionSettings.magicTranslation.internalLanguage
-      : context.extensionSettings.magicTranslation.targetLanguage;
+  const languageCode = type === 'userInput' ? settings.internalLanguage : settings.targetLanguage;
   const languageText = Object.entries(languageCodes).find(([, code]) => code === languageCode)?.[0];
   if (!languageText) {
     st_echo('error', `Make sure language ${languageCode} is supported`);
     return null;
   }
 
-  const prompt = context.extensionSettings.magicTranslation.template
-    .replace(/{{prompt}}/g, message?.mes ?? (messageId as unknown as string))
-    .replace(/{{language}}/g, languageText);
+  const prompt = context.substituteParams(
+    selectedPreset.content,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    {
+      prompt: message?.mes ?? (messageId as unknown as string),
+      language: languageText,
+    },
+  );
 
   if (message) {
     generating.push(messageId);
@@ -337,7 +346,7 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     const response = await sendGenerateRequest(result.body, result.url, result.type);
 
     let displayText = response;
-    if (context.extensionSettings.magicTranslation.filterCodeBlock) {
+    if (selectedPreset.filterCodeBlock) {
       const codeBlockMatch = response.match(/^(?:[^`]*?)\n?```[\s\S]*?\n([\s\S]*?)```(?![^`]*```)/);
       if (codeBlockMatch) {
         displayText = codeBlockMatch[1].trim();
@@ -368,4 +377,37 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
   }
 }
 
-initUI();
+function main() {
+  initUI();
+}
+
+settingsManager
+  .initializeSettings()
+  .then((result) => {
+    const settings = settingsManager.getSettings();
+    // Handle migration from old format
+    if (result.oldSettings && !result.oldSettings.promptPresets) {
+      const oldTemplate = result.oldSettings.template;
+      if (oldTemplate && oldTemplate !== DEFAULT_PROMPT) {
+        settings.promptPresets.custom = {
+          content: oldTemplate,
+          filterCodeBlock: result.oldSettings.filterCodeBlock ?? true,
+        };
+        settings.promptPreset = 'custom';
+        settingsManager.saveSettings();
+      }
+    }
+
+    main();
+  })
+  .catch((error) => {
+    st_echo('error', error);
+    context.Popup.show
+      .confirm('Data migration failed. Do you want to reset the roadway data?', 'Roadway')
+      .then((result: any) => {
+        if (result) {
+          settingsManager.resetSettings();
+          main();
+        }
+      });
+  });

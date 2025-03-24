@@ -1,3 +1,4 @@
+import { ConnectionProfile } from 'sillytavern-utils-lib/types/profiles';
 import {
   amount_gen,
   chat_completion_sources,
@@ -9,7 +10,7 @@ import {
   st_getLogprobsNumber,
   st_replaceMacrosInList,
   textgen_types,
-} from './config';
+} from './config.js';
 
 const MAX_TOKENS = 4096;
 
