@@ -160,20 +160,17 @@ async function initSettings() {
           content: currentPreset.content,
           filterCodeBlock: currentPreset.filterCodeBlock,
         };
-        settingsManager.saveSettings();
       },
     },
     rename: {
       onAfterRename: (previousValue, newValue) => {
         settings.promptPresets[newValue] = settings.promptPresets[previousValue];
         delete settings.promptPresets[previousValue];
-        settingsManager.saveSettings();
       },
     },
     delete: {
       onAfterDelete: (value) => {
         delete settings.promptPresets[value];
-        settingsManager.saveSettings();
       },
     },
   });
