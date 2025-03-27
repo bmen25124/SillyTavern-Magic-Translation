@@ -57,7 +57,7 @@ export function getGeneratePayload(
 
   if (selectedApiMap.selected === 'openai') {
     return {
-      body: getOpenAIData(selectedApiMap, prompt, preset, profile.model),
+      body: getOpenAIData(selectedApiMap, prompt, preset, profile.model, profile['api-url']),
       url: '/api/backends/chat-completions/generate',
       type: selectedApiMap.selected,
     };
@@ -75,6 +75,7 @@ export function getOpenAIData(
   replacedPrompt: string,
   preset: any,
   model?: string,
+  apiUrl?: string
 ) {
   const chat_completion_source = selectedApiMap.source || chat_completion_sources.OPENAI;
   const isClaude = chat_completion_source == chat_completion_sources.CLAUDE;
@@ -112,6 +113,7 @@ export function getOpenAIData(
     group_names: [], // Don't care
     include_reasoning: false, // Don't care
     reasoning_effort: 'medium', // Don't care
+    custom_url: apiUrl,
   };
 
   if (
@@ -164,7 +166,7 @@ export function getOpenAIData(
   }
 
   if (isCustom) {
-    generate_data['custom_url'] = preset.custom_url;
+    // generate_data['custom_url'] = preset.custom_url;
     generate_data['custom_include_body'] = preset.custom_include_body;
     generate_data['custom_exclude_body'] = preset.custom_exclude_body;
     generate_data['custom_include_headers'] = preset.custom_include_headers;
@@ -322,7 +324,7 @@ export function getTextGenData(
     custom_token_bans: [textgen_types.APHRODITE, textgen_types.MANCER].includes(type) ? [] : '',
     banned_strings: [],
     api_type: type,
-    api_server: context.getTextGenServer(type),
+    api_server: profile['api-url'] ?? context.getTextGenServer(type),
     sampler_order: type === textgen_types.KOBOLDCPP ? preset.sampler_order : undefined,
     xtc_threshold: preset.xtc_threshold,
     xtc_probability: preset.xtc_probability,
