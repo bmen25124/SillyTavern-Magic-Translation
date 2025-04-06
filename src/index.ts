@@ -72,7 +72,7 @@ async function initUI() {
   );
   $('#message_template .mes_buttons .extraMesButtons').prepend(showTranslateButton);
 
-  $(document).on('click', '.mes_magic_translation_button', function () {
+  $(document).on('click', '.mes_magic_translation_button', async function () {
     const messageBlock = $(this).closest('.mes');
     const messageId = Number(messageBlock.attr('mesid'));
     const message = context.chat[messageId];
@@ -85,31 +85,31 @@ async function initUI() {
       st_updateMessageBlock(messageId, message);
       return;
     }
-    generateMessage(messageId, 'incomingMessage');
+    await generateMessage(messageId, 'incomingMessage');
   });
 
   const settings = settingsManager.getSettings();
-  context.eventSource.on(EventNames.MESSAGE_UPDATED, (messageId: number) => {
+  context.eventSource.on(EventNames.MESSAGE_UPDATED, async (messageId: number) => {
     if (incomingTypes.includes(settings.autoMode)) {
-      generateMessage(messageId, 'incomingMessage');
+      await generateMessage(messageId, 'incomingMessage');
     }
   });
-  context.eventSource.on(EventNames.IMPERSONATE_READY, (messageId: number) => {
+  context.eventSource.on(EventNames.IMPERSONATE_READY, async (messageId: number) => {
     if (outgoingTypes.includes(settings.autoMode)) {
-      generateMessage(messageId, 'impersonate');
+      await generateMessage(messageId, 'impersonate');
     }
   });
 
   // @ts-ignore
-  context.eventSource.makeFirst(EventNames.CHARACTER_MESSAGE_RENDERED, (messageId: number) => {
+  context.eventSource.makeFirst(EventNames.CHARACTER_MESSAGE_RENDERED, async (messageId: number) => {
     if (incomingTypes.includes(settings.autoMode)) {
-      generateMessage(messageId, 'incomingMessage');
+      await generateMessage(messageId, 'incomingMessage');
     }
   });
   // @ts-ignore
-  context.eventSource.makeFirst(EventNames.USER_MESSAGE_RENDERED, (messageId: number) => {
+  context.eventSource.makeFirst(EventNames.USER_MESSAGE_RENDERED, async (messageId: number) => {
     if (outgoingTypes.includes(settings.autoMode)) {
-      generateMessage(messageId, 'userInput');
+      await generateMessage(messageId, 'userInput');
     }
   });
 }

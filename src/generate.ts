@@ -75,7 +75,7 @@ export function getOpenAIData(
   replacedPrompt: string,
   preset: any,
   model?: string,
-  apiUrl?: string
+  apiUrl?: string,
 ) {
   const chat_completion_source = selectedApiMap.source || chat_completion_sources.OPENAI;
   const isClaude = chat_completion_source == chat_completion_sources.CLAUDE;
