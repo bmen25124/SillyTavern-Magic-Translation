@@ -86,17 +86,36 @@ async function initUI() {
       return;
     }
     await generateMessage(messageId, 'incomingMessage');
+    const eventData = {
+      messageId,
+      type: 'incomingMessage',
+      auto: false,
+    };
+    context.eventSource.emit('magic_translation_done', eventData);
+    context.eventSource.emit('magic_translation_character_message', eventData);
   });
 
   const settings = settingsManager.getSettings();
   context.eventSource.on(EventNames.MESSAGE_UPDATED, async (messageId: number) => {
     if (incomingTypes.includes(settings.autoMode)) {
       await generateMessage(messageId, 'incomingMessage');
+      context.eventSource.emit('magic_translation_done', {
+        messageId,
+        type: 'incomingMessage',
+        auto: true,
+      });
     }
   });
   context.eventSource.on(EventNames.IMPERSONATE_READY, async (messageId: number) => {
     if (outgoingTypes.includes(settings.autoMode)) {
       await generateMessage(messageId, 'impersonate');
+      const eventData = {
+        messageId,
+        type: 'impersonate',
+        auto: true,
+      };
+      context.eventSource.emit('magic_translation_done', eventData);
+      context.eventSource.emit('magic_translation_impersonate', eventData);
     }
   });
 
@@ -104,12 +123,26 @@ async function initUI() {
   context.eventSource.makeFirst(EventNames.CHARACTER_MESSAGE_RENDERED, async (messageId: number) => {
     if (incomingTypes.includes(settings.autoMode)) {
       await generateMessage(messageId, 'incomingMessage');
+      const eventData = {
+        messageId,
+        type: 'incomingMessage',
+        auto: true,
+      };
+      context.eventSource.emit('magic_translation_done', eventData);
+      context.eventSource.emit('magic_translation_character_message', eventData);
     }
   });
   // @ts-ignore
   context.eventSource.makeFirst(EventNames.USER_MESSAGE_RENDERED, async (messageId: number) => {
     if (outgoingTypes.includes(settings.autoMode)) {
       await generateMessage(messageId, 'userInput');
+      const eventData = {
+        messageId,
+        type: 'userInput',
+        auto: true,
+      };
+      context.eventSource.emit('magic_translation_done', eventData);
+      context.eventSource.emit('magic_translation_user_message', eventData);
     }
   });
 }
