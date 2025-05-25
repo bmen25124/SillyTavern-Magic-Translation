@@ -1,8 +1,9 @@
 import { ExtensionSettingsManager, buildPresetSelect } from 'sillytavern-utils-lib';
-import { context, extensionName, st_echo, st_updateMessageBlock } from './config.js';
-import { getGeneratePayload, sendGenerateRequest } from './generate.js';
+import { context, extensionName, st_updateMessageBlock } from './config.js';
+import { sendGenerateRequest } from './generate.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
+import { st_echo } from 'sillytavern-utils-lib/config';
 import { languageCodes } from './types/types.js';
 
 interface PromptPreset {
@@ -172,7 +173,7 @@ async function initSettings() {
 
   // Use buildPresetSelect for preset management
   buildPresetSelect('.magic-translation-settings select.prompt_preset', {
-    label: 'prompt',
+    label: () => 'prompt',
     initialValue: settings.promptPreset,
     initialList: Object.keys(settings.promptPresets),
     readOnlyValues: ['default'],
@@ -368,12 +369,10 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     generating.push(messageId);
   }
   try {
-    const result = getGeneratePayload(profileId, prompt);
-    if (!result) {
+    const response = await sendGenerateRequest(profileId, prompt);
+    if (!response) {
       return;
     }
-
-    const response = await sendGenerateRequest(result.body, result.url, result.type);
 
     let displayText = response;
     if (selectedPreset.filterCodeBlock) {
@@ -411,33 +410,44 @@ function main() {
   initUI();
 }
 
-settingsManager
-  .initializeSettings()
-  .then((result) => {
-    const settings = settingsManager.getSettings();
-    // Handle migration from old format
-    if (result.oldSettings && !result.oldSettings.promptPresets) {
-      const oldTemplate = result.oldSettings.template;
-      if (oldTemplate && oldTemplate !== DEFAULT_PROMPT) {
-        settings.promptPresets.custom = {
-          content: oldTemplate,
-          filterCodeBlock: result.oldSettings.filterCodeBlock ?? true,
-        };
-        settings.promptPreset = 'custom';
-        settingsManager.saveSettings();
-      }
-    }
+function importCheck(): boolean {
+  if (!context.ConnectionManagerRequestService) {
+    return false;
+  }
+  return true;
+}
 
-    main();
-  })
-  .catch((error) => {
-    st_echo('error', error);
-    context.Popup.show
-      .confirm('Data migration failed. Do you want to reset the roadway data?', 'Roadway')
-      .then((result: any) => {
-        if (result) {
-          settingsManager.resetSettings();
-          main();
+if (!importCheck()) {
+  st_echo('error', `[${extensionName}] Make sure ST is updated.`);
+} else {
+  settingsManager
+    .initializeSettings()
+    .then((result) => {
+      const settings = settingsManager.getSettings();
+      // Handle migration from old format
+      if (result.oldSettings && !result.oldSettings.promptPresets) {
+        const oldTemplate = result.oldSettings.template;
+        if (oldTemplate && oldTemplate !== DEFAULT_PROMPT) {
+          settings.promptPresets.custom = {
+            content: oldTemplate,
+            filterCodeBlock: result.oldSettings.filterCodeBlock ?? true,
+          };
+          settings.promptPreset = 'custom';
+          settingsManager.saveSettings();
         }
-      });
-  });
+      }
+
+      main();
+    })
+    .catch((error) => {
+      st_echo('error', error);
+      context.Popup.show
+        .confirm('Data migration failed. Do you want to reset the roadway data?', 'Roadway')
+        .then((result: any) => {
+          if (result) {
+            settingsManager.resetSettings();
+            main();
+          }
+        });
+    });
+}
