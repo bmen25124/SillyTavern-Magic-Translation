@@ -173,7 +173,6 @@ async function initSettings() {
 
   // Use buildPresetSelect for preset management
   buildPresetSelect('.magic-translation-settings select.prompt_preset', {
-    label: () => 'prompt',
     initialValue: settings.promptPreset,
     initialList: Object.keys(settings.promptPresets),
     readOnlyValues: ['default'],
