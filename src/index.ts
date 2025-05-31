@@ -409,38 +409,39 @@ function main() {
   initUI();
 
   // Register the magic-translate slash command
-  context.SlashCommandParser.addCommandObject(context.SlashCommand.fromProps({
-    name: 'magic-translate',
-    callback: async (args: any, value: String) => {
-      // Default to -1 (latest message) if no value is provided
-      const messageId = value ? Number(value.toString()) : -1;
-      if (isNaN(messageId)) {
-        return 'Invalid message ID. Please provide a valid number or -1 for the latest message.';
-      }
-
-      try {
-        let actualMessageId = messageId;
-        // If messageId is -1, get the latest message ID
-        if (messageId === -1) {
-          actualMessageId = context.chat.length - 1;
+  context.SlashCommandParser.addCommandObject(
+    context.SlashCommand.fromProps({
+      name: 'magic-translate',
+      callback: async (args: any, value: String) => {
+        // Default to -1 (latest message) if no value is provided
+        const messageId = value ? Number(value.toString()) : -1;
+        if (isNaN(messageId)) {
+          return 'Invalid message ID. Please provide a valid number or -1 for the latest message.';
         }
 
-        await generateMessage(actualMessageId, 'incomingMessage');
-        return `Message ${messageId === -1 ? 'latest' : messageId} has been translated.`;
-      } catch (error) {
-        console.error(error);
-        return `Failed to translate message ${messageId === -1 ? 'latest' : messageId}: ${error}`;
-      }
-    },
-    returns: 'confirmation of translation',
-    unnamedArgumentList: [
-      context.SlashCommandArgument.fromProps({
-        description: 'the ID of the message to translate (use -1 for latest message)',
-        typeList: context.ARGUMENT_TYPE.NUMBER,
-        isRequired: false,
-      }),
-    ],
-    helpString: `
+        try {
+          let actualMessageId = messageId;
+          // If messageId is -1, get the latest message ID
+          if (messageId === -1) {
+            actualMessageId = context.chat.length - 1;
+          }
+
+          await generateMessage(actualMessageId, 'incomingMessage');
+          return `Message ${messageId === -1 ? 'latest' : messageId} has been translated.`;
+        } catch (error) {
+          console.error(error);
+          return `Failed to translate message ${messageId === -1 ? 'latest' : messageId}: ${error}`;
+        }
+      },
+      returns: 'confirmation of translation',
+      unnamedArgumentList: [
+        context.SlashCommandArgument.fromProps({
+          description: 'the ID of the message to translate (use -1 for latest message)',
+          typeList: context.ARGUMENT_TYPE.NUMBER,
+          isRequired: false,
+        }),
+      ],
+      helpString: `
       <div>
         Translates a message with the specified ID using Magic Translation.
         If no ID is provided or ID is -1, the latest message will be translated.
@@ -463,7 +464,8 @@ function main() {
         </ul>
       </div>
     `,
-  }));
+    }),
+  );
 }
 
 function importCheck(): boolean {
