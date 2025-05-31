@@ -413,7 +413,7 @@ function main() {
     context.SlashCommand.fromProps({
       name: 'magic-translate',
       callback: async (args: any, value: String) => {
-        // Default to -1 (latest message) if no value is provided
+        // Default to -1 (the latest message) if no value is provided
         const messageId = value ? Number(value.toString()) : -1;
         if (isNaN(messageId)) {
           return 'Invalid message ID. Please provide a valid number or -1 for the latest message.';

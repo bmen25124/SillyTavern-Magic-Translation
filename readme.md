@@ -40,7 +40,7 @@ https://github.com/bmen25124/SillyTavern-Magic-Translation
 
 4.  **Use Manual Translation:**
     *   In the chat interface, click the globe icon on a message to translate it.
-    *   Alternatively, use the slash command `/magic-translate {message id}` to translate a specific message by its ID.
+    *   Use the slash command `/magic-translate {message id}` to translate a specific message by its ID, default to -1 (the latest message).
 
 ## Why not use the official Chat Translation extension?
 
