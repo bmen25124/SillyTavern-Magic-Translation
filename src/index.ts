@@ -1,7 +1,7 @@
 import { ExtensionSettingsManager, buildPresetSelect } from 'sillytavern-utils-lib';
 import { context, extensionName, st_updateMessageBlock } from './config.js';
 import { sendGenerateRequest } from './generate.js';
-import { EventNames, SillyTavernContext } from 'sillytavern-utils-lib/types';
+import { EventNames } from 'sillytavern-utils-lib/types';
 import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { languageCodes } from './types/types.js';
@@ -412,37 +412,53 @@ function main() {
   context.SlashCommandParser.addCommandObject(context.SlashCommand.fromProps({
     name: 'magic-translate',
     callback: async (args: any, value: String) => {
-      const messageId = Number(value.toString());
+      // Default to -1 (latest message) if no value is provided
+      const messageId = value ? Number(value.toString()) : -1;
       if (isNaN(messageId)) {
-        return 'Invalid message ID. Please provide a valid number.';
+        return 'Invalid message ID. Please provide a valid number or -1 for the latest message.';
       }
 
       try {
-        await generateMessage(messageId, 'incomingMessage');
-        return `Message ${messageId} has been translated.`;
+        let actualMessageId = messageId;
+        // If messageId is -1, get the latest message ID
+        if (messageId === -1) {
+          actualMessageId = context.chat.length - 1;
+        }
+
+        await generateMessage(actualMessageId, 'incomingMessage');
+        return `Message ${messageId === -1 ? 'latest' : messageId} has been translated.`;
       } catch (error) {
         console.error(error);
-        return `Failed to translate message ${messageId}: ${error}`;
+        return `Failed to translate message ${messageId === -1 ? 'latest' : messageId}: ${error}`;
       }
     },
     returns: 'confirmation of translation',
     unnamedArgumentList: [
       context.SlashCommandArgument.fromProps({
-        description: 'the ID of the message to translate',
+        description: 'the ID of the message to translate (use -1 for latest message)',
         typeList: context.ARGUMENT_TYPE.NUMBER,
-        isRequired: true,
+        isRequired: false,
       }),
     ],
     helpString: `
       <div>
         Translates a message with the specified ID using Magic Translation.
+        If no ID is provided or ID is -1, the latest message will be translated.
       </div>
       <div>
-        <strong>Example:</strong>
+        <strong>Examples:</strong>
         <ul>
           <li>
+            <pre><code class="language-stscript">/magic-translate</code></pre>
+            translates the latest message
+          </li>
+          <li>
+            <pre><code class="language-stscript">/magic-translate -1</code></pre>
+            also translates the latest message
+          </li>
+          <li>
             <pre><code class="language-stscript">/magic-translate 5</code></pre>
-            translates message with ID 5
+            translates the message with ID 5
           </li>
         </ul>
       </div>
