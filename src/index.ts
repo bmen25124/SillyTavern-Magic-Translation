@@ -1,7 +1,7 @@
 import { ExtensionSettingsManager, buildPresetSelect } from 'sillytavern-utils-lib';
 import { context, extensionName, st_updateMessageBlock } from './config.js';
 import { sendGenerateRequest } from './generate.js';
-import { EventNames } from 'sillytavern-utils-lib/types';
+import { EventNames, SillyTavernContext } from 'sillytavern-utils-lib/types';
 import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { languageCodes } from './types/types.js';
@@ -407,6 +407,47 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
 
 function main() {
   initUI();
+
+  // Register the magic-translate slash command
+  context.SlashCommandParser.addCommandObject(context.SlashCommand.fromProps({
+    name: 'magic-translate',
+    callback: async (args: any, value: String) => {
+      const messageId = Number(value.toString());
+      if (isNaN(messageId)) {
+        return 'Invalid message ID. Please provide a valid number.';
+      }
+
+      try {
+        await generateMessage(messageId, 'incomingMessage');
+        return `Message ${messageId} has been translated.`;
+      } catch (error) {
+        console.error(error);
+        return `Failed to translate message ${messageId}: ${error}`;
+      }
+    },
+    returns: 'confirmation of translation',
+    unnamedArgumentList: [
+      context.SlashCommandArgument.fromProps({
+        description: 'the ID of the message to translate',
+        typeList: context.ARGUMENT_TYPE.NUMBER,
+        isRequired: true,
+      }),
+    ],
+    helpString: `
+      <div>
+        Translates a message with the specified ID using Magic Translation.
+      </div>
+      <div>
+        <strong>Example:</strong>
+        <ul>
+          <li>
+            <pre><code class="language-stscript">/magic-translate 5</code></pre>
+            translates message with ID 5
+          </li>
+        </ul>
+      </div>
+    `,
+  }));
 }
 
 function importCheck(): boolean {
