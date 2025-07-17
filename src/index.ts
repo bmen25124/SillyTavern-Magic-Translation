@@ -351,6 +351,18 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     return null;
   }
 
+  const extraParams: Record<string, string> = {
+    prompt: message?.mes ?? (messageId as unknown as string),
+    language: languageText,
+  };
+
+  for (let i = 0; i < context.chat.length; i++) {
+    const message = context.chat[context.chat.length - 1 - i];
+    if (message) {
+      extraParams[`chat_${i + 1}`] = message.mes;
+    }
+  }
+
   const prompt = context.substituteParams(
     selectedPreset.content,
     undefined,
@@ -358,10 +370,7 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     undefined,
     undefined,
     undefined,
-    {
-      prompt: message?.mes ?? (messageId as unknown as string),
-      language: languageText,
-    },
+    extraParams,
   );
 
   if (message) {
