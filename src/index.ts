@@ -356,10 +356,21 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     language: languageText,
   };
 
-  for (let i = 0; i < context.chat.length; i++) {
-    const message = context.chat[context.chat.length - 1 - i];
-    if (message) {
-      extraParams[`chat_${i + 1}`] = message.mes;
+  if (message) {
+    // When a message is selected, iterate backwards from the messageId
+    for (let i = 0; i <= messageId; i++) {
+      const currentMessage = context.chat[messageId - i];
+      if (currentMessage) {
+        extraParams[`chat_${i + 1}`] = currentMessage.mes;
+      }
+    }
+  } else {
+    // Keep original behavior for impersonate mode (no specific message selected)
+    for (let i = 0; i < context.chat.length; i++) {
+      const chatMessage = context.chat[context.chat.length - 1 - i];
+      if (chatMessage) {
+        extraParams[`chat_${i + 1}`] = chatMessage.mes;
+      }
     }
   }
 
