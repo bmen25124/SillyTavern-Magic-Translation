@@ -3,7 +3,7 @@ import { context, extensionName, st_updateMessageBlock } from './config.js';
 import { sendGenerateRequest } from './generate.js';
 import { EventNames } from 'sillytavern-utils-lib/types';
 import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
-import { st_echo } from 'sillytavern-utils-lib/config';
+import { name1, st_echo } from 'sillytavern-utils-lib/config';
 import { languageCodes } from './types/types.js';
 import * as Handlebars from 'handlebars';
 
@@ -49,6 +49,9 @@ You are an expert multilingual translator. Your task is to translate the user's 
 > {{this.name}}: {{this.mes}}
 
 {{/each}}
+
+## Perspective
+{{name}}
 
 ## Text to Translate
 \`\`\`
@@ -395,6 +398,7 @@ async function translateText(
     prompt: text,
     language: languageText,
     chat: structuredClone(context.chat).slice(0, messageId).reverse(),
+    name: messageId !== undefined ? context.chat[messageId].name : name1,
     ...extraParams,
   };
 
