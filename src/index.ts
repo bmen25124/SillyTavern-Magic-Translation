@@ -5,6 +5,20 @@ import { EventNames } from 'sillytavern-utils-lib/types';
 import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
 import { st_echo } from 'sillytavern-utils-lib/config';
 import { languageCodes } from './types/types.js';
+import * as Handlebars from 'handlebars';
+
+if (!Handlebars.helpers['slice']) {
+  Handlebars.registerHelper('slice', function (context, count) {
+    if (!Array.isArray(context)) return [];
+    return context.slice(count);
+  });
+}
+
+if (!Handlebars.helpers['add']) {
+  Handlebars.registerHelper('add', function (value1, value2) {
+    return value1 + value2;
+  });
+}
 
 interface PromptPreset {
   content: string;
@@ -25,11 +39,26 @@ interface ExtensionSettings {
 const VERSION = '0.1.1';
 const FORMAT_VERSION = 'F_1.0';
 
-const DEFAULT_PROMPT = `Translate this text to {{language}}. Respect markdown. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
+const DEFAULT_PROMPT = `# Task: Translate Text
 
+You are an expert multilingual translator. Your task is to translate the user's text into {{language}} accurately, preserving the original markdown formatting.
+
+## Context: Previous Messages
+{{#each (slice chat -3)}}
+**Message {{add @index 1}}:**
+> {{this.name}}: {{this.mes}}
+
+{{/each}}
+
+## Text to Translate
 \`\`\`
 {{prompt}}
 \`\`\`
+
+## Instructions
+1.  Translate the "Text to Translate" into **{{language}}**.
+2.  Preserve all markdown formatting (headings, lists, bold, etc.).
+3.  Your response **must** only contain the translated text, enclosed in a single markdown code block.
 
 Important: Your response must follow this exact format with the translation enclosed in code blocks (\`\`\`).`;
 
@@ -144,6 +173,24 @@ async function initUI() {
       };
       context.eventSource.emit('magic_translation_done', eventData);
       context.eventSource.emit('magic_translation_user_message', eventData);
+    }
+  });
+
+  const extensionsMenu = document.querySelector('#extensionsMenu');
+  const magicTranslateWandContainer = document.createElement('div');
+  magicTranslateWandContainer.id = 'magic_translate_wand_container';
+  magicTranslateWandContainer.className = 'extension_container';
+  extensionsMenu?.appendChild(magicTranslateWandContainer);
+  const buttonHtml = await context.renderExtensionTemplateAsync(`third-party/${extensionName}`, 'templates/buttons');
+  magicTranslateWandContainer.insertAdjacentHTML('beforeend', buttonHtml);
+  extensionsMenu?.querySelector('#magic_translate_input')?.addEventListener('click', async () => {
+    const sendTextarea = document.querySelector('#send_textarea') as HTMLTextAreaElement;
+    if (sendTextarea) {
+      const settings = settingsManager.getSettings();
+      const translatedText = await translateText(sendTextarea.value, undefined, settings.internalLanguage);
+      if (translatedText) {
+        sendTextarea.value = translatedText;
+      }
     }
   });
 }
@@ -307,6 +354,7 @@ async function initSettings() {
 
 async function translateText(
   text: string,
+  messageId?: number,
   targetLanguage?: string,
   profileId?: string,
   preset?: string,
@@ -343,9 +391,10 @@ async function translateText(
     return null;
   }
 
-  const allExtraParams: Record<string, string> = {
+  const allExtraParams: Record<string, any> = {
     prompt: text,
     language: languageText,
+    chat: structuredClone(context.chat).slice(0, messageId).reverse(),
     ...extraParams,
   };
 
@@ -359,8 +408,11 @@ async function translateText(
     allExtraParams,
   );
 
+  const template = Handlebars.compile(prompt, { noEscape: true });
+  const renderedPrompt = template(allExtraParams);
+
   try {
-    const response = await sendGenerateRequest(selectedProfileId, prompt);
+    const response = await sendGenerateRequest(selectedProfileId, renderedPrompt);
     if (!response) {
       return null;
     }
@@ -441,6 +493,7 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
   try {
     const displayText = await translateText(
       message?.mes ?? (messageId as unknown as string),
+      messageId,
       languageCode,
       undefined, // Use default profile from settings
       undefined, // Use default preset from settings
@@ -546,7 +599,7 @@ function main() {
         }
 
         try {
-          const translatedText = await translateText(value, args.target, args.profile, args.preset);
+          const translatedText = await translateText(value, undefined, args.target, args.profile, args.preset);
           return translatedText ?? 'Translation failed.';
         } catch (error) {
           console.error(error);
