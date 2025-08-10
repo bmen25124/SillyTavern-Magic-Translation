@@ -305,6 +305,81 @@ async function initSettings() {
   });
 }
 
+async function translateText(
+  text: string,
+  targetLanguage?: string,
+  profileId?: string,
+  preset?: string,
+  extraParams: Record<string, string> = {},
+): Promise<string | null> {
+  const settings = settingsManager.getSettings();
+  let selectedProfileId = profileId ?? settings.profile;
+
+  if (profileId) {
+    const profile = context.extensionSettings.connectionManager?.profiles.find(
+      (p: any) => p.id === profileId || p.name === profileId,
+    );
+    if (profile) {
+      selectedProfileId = profile.id;
+    }
+  }
+
+  if (!selectedProfileId) {
+    st_echo('warning', 'Select a connection profile');
+    return null;
+  }
+
+  const selectedPresetName = preset ?? settings.promptPreset;
+  const selectedPreset = settings.promptPresets[selectedPresetName];
+  if (!selectedPreset || !selectedPreset.content) {
+    st_echo('error', `Prompt preset "${selectedPresetName}" not found.`);
+    return null;
+  }
+
+  const languageCode = targetLanguage ?? settings.targetLanguage;
+  const languageText = Object.entries(languageCodes).find(([, code]) => code === languageCode)?.[0];
+  if (!languageText) {
+    st_echo('error', `Make sure language ${languageCode} is supported`);
+    return null;
+  }
+
+  const allExtraParams: Record<string, string> = {
+    prompt: text,
+    language: languageText,
+    ...extraParams,
+  };
+
+  const prompt = context.substituteParams(
+    selectedPreset.content,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    allExtraParams,
+  );
+
+  try {
+    const response = await sendGenerateRequest(selectedProfileId, prompt);
+    if (!response) {
+      return null;
+    }
+
+    let displayText = response;
+    if (selectedPreset.filterCodeBlock) {
+      const codeBlockMatch = response.match(/^(?:[^`]*?)\n?```[\s\S]*?\n([\s\S]*?)```(?![^`]*```)/);
+      if (codeBlockMatch) {
+        displayText = codeBlockMatch[1].trim();
+      }
+    }
+    return displayText;
+  } catch (error) {
+    console.error(error);
+    st_echo('error', `Translation failed: ${error}`);
+    return null;
+  }
+}
+
 /**
  * @param messageId If type is 'impersonate', messageId is the message impersonate
  * @param type userInput: User sended message, incomingMessage: Message from LLM, impersonate: Message impersonate
@@ -328,12 +403,6 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     return;
   }
 
-  const selectedPreset = settings.promptPresets[settings.promptPreset];
-  if (!selectedPreset || !selectedPreset.content) {
-    st_echo('error', 'Missing template, set a template in the Magic Translation settings');
-    return null;
-  }
-
   const message = type !== 'impersonate' ? context.chat[messageId] : undefined;
   if (!message && type !== 'impersonate') {
     st_echo('error', `Could not find message with id ${messageId}`);
@@ -345,16 +414,8 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
   }
 
   const languageCode = type === 'userInput' ? settings.internalLanguage : settings.targetLanguage;
-  const languageText = Object.entries(languageCodes).find(([, code]) => code === languageCode)?.[0];
-  if (!languageText) {
-    st_echo('error', `Make sure language ${languageCode} is supported`);
-    return null;
-  }
 
-  const extraParams: Record<string, string> = {
-    prompt: message?.mes ?? (messageId as unknown as string),
-    language: languageText,
-  };
+  const extraParams: Record<string, string> = {};
 
   if (message) {
     // When a message is selected, iterate backwards from the messageId
@@ -374,31 +435,20 @@ async function generateMessage(messageId: number, type: 'userInput' | 'incomingM
     }
   }
 
-  const prompt = context.substituteParams(
-    selectedPreset.content,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    extraParams,
-  );
-
   if (message) {
     generating.push(messageId);
   }
   try {
-    const response = await sendGenerateRequest(profileId, prompt);
-    if (!response) {
-      return;
-    }
+    const displayText = await translateText(
+      message?.mes ?? (messageId as unknown as string),
+      languageCode,
+      undefined, // Use default profile from settings
+      undefined, // Use default preset from settings
+      extraParams,
+    );
 
-    let displayText = response;
-    if (selectedPreset.filterCodeBlock) {
-      const codeBlockMatch = response.match(/^(?:[^`]*?)\n?```[\s\S]*?\n([\s\S]*?)```(?![^`]*```)/);
-      if (codeBlockMatch) {
-        displayText = codeBlockMatch[1].trim();
-      }
+    if (!displayText) {
+      return;
     }
 
     if (message) {
@@ -480,6 +530,80 @@ function main() {
           <li>
             <pre><code class="language-stscript">/magic-translate 5</code></pre>
             translates the message with ID 5
+          </li>
+        </ul>
+      </div>
+    `,
+    }),
+  );
+
+  context.SlashCommandParser.addCommandObject(
+    context.SlashCommand.fromProps({
+      name: 'magic-translate-text',
+      callback: async (args: { target?: string; profile?: string; preset?: string }, value: string) => {
+        if (!value) {
+          return 'Please provide the text to translate.';
+        }
+
+        try {
+          const translatedText = await translateText(value, args.target, args.profile, args.preset);
+          return translatedText ?? 'Translation failed.';
+        } catch (error) {
+          console.error(error);
+          return `Failed to translate text: ${error}`;
+        }
+      },
+      returns: 'translated text',
+      unnamedArgumentList: [
+        context.SlashCommandArgument.fromProps({
+          description: 'the text to translate',
+          typeList: [context.ARGUMENT_TYPE.STRING],
+          isRequired: true,
+        }),
+      ],
+      namedArgumentList: [
+        context.SlashCommandArgument.fromProps({
+          name: 'target',
+          description: 'the target language code',
+          typeList: [context.ARGUMENT_TYPE.STRING],
+          enumList: Object.values(languageCodes),
+          isRequired: false,
+        }),
+        context.SlashCommandArgument.fromProps({
+          name: 'profile',
+          description: 'the connection profile to use',
+          typeList: context.ARGUMENT_TYPE.STRING,
+          isRequired: false,
+        }),
+        context.SlashCommandArgument.fromProps({
+          name: 'preset',
+          description: 'the prompt preset to use',
+          typeList: context.ARGUMENT_TYPE.STRING,
+          isRequired: false,
+        }),
+      ],
+      helpString: `
+      <div>
+        Translates the given text using Magic Translation.
+      </div>
+      <div>
+        <strong>Example:</strong>
+        <ul>
+          <li>
+            <pre><code class="language-stscript">/magic-translate-text Hello world</code></pre>
+            translates "Hello world" to the default target language.
+          </li>
+          <li>
+            <pre><code class="language-stscript">/magic-translate-text target="es" Hello world</code></pre>
+            translates "Hello world" to Spanish.
+          </li>
+          <li>
+            <pre><code class="language-stscript">/magic-translate-text profile="My-Profile" Hello world</code></pre>
+            translates "Hello world" using the "My-Profile" connection profile.
+          </li>
+          <li>
+            <pre><code class="language-stscript">/magic-translate-text preset="My-Preset" Hello world</code></pre>
+            translates "Hello world" using the "My-Preset" prompt preset.
           </li>
         </ul>
       </div>
