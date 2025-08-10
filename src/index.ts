@@ -507,7 +507,7 @@ function main() {
       unnamedArgumentList: [
         context.SlashCommandArgument.fromProps({
           description: 'the ID of the message to translate (use -1 for latest message)',
-          typeList: context.ARGUMENT_TYPE.NUMBER,
+          typeList: [context.ARGUMENT_TYPE.NUMBER],
           isRequired: false,
         }),
       ],
@@ -562,23 +562,23 @@ function main() {
         }),
       ],
       namedArgumentList: [
-        context.SlashCommandArgument.fromProps({
+        context.SlashCommandNamedArgument.fromProps({
           name: 'target',
           description: 'the target language code',
           typeList: [context.ARGUMENT_TYPE.STRING],
           enumList: Object.values(languageCodes),
           isRequired: false,
         }),
-        context.SlashCommandArgument.fromProps({
+        context.SlashCommandNamedArgument.fromProps({
           name: 'profile',
           description: 'the connection profile to use',
-          typeList: context.ARGUMENT_TYPE.STRING,
+          typeList: [context.ARGUMENT_TYPE.STRING],
           isRequired: false,
         }),
-        context.SlashCommandArgument.fromProps({
+        context.SlashCommandNamedArgument.fromProps({
           name: 'preset',
           description: 'the prompt preset to use',
-          typeList: context.ARGUMENT_TYPE.STRING,
+          typeList: [context.ARGUMENT_TYPE.STRING],
           isRequired: false,
         }),
       ],
