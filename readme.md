@@ -1,17 +1,19 @@
 # SillyTavern Magic Translation
 
-## Overview
-
-A [SillyTavern](https://docs.sillytavern.app/) extension that provides real-time translation of chat messages using configured Language Model APIs. You can configure the translation target language, the prompt used for translation, and which messages should be automatically translated.
+A [SillyTavern](https://docs.sillytavern.app/) extension that provides real-time translation of chat messages using your configured Language Model APIs.
 
 ![settings](images/settings.png)
 
-## Key Features
+## Features
 
-*   **Real-time Translation:** Translate chat messages using LLMs.
-*   **Configurable API:** Uses [Connection Profiles](https://docs.sillytavern.app/usage/core-concepts/connection-profiles/) to connect to various LLM APIs.
-*   **Customizable Prompts:** Modify the prompt used for translation to fine-tune results.
-*   **Automatic Translation Modes:** Translate incoming responses, outgoing input, or both automatically.
+*   **Real-time Translation:** Translate chat messages using any configured LLM.
+*   **Configurable API:** Uses SillyTavern's built-in [Connection Profiles](https://docs.sillytavern.app/usage/core-concepts/connection-profiles/).
+*   **Customizable Prompts:** Create and manage multiple prompt presets to fine-tune translation results.
+*   **Automatic Translation:** Automatically translate incoming responses, outgoing messages, or both.
+*   **Manual Translation:** On-demand translation via a button on each message or with slash commands.
+*   **Slash Commands:**
+    *   `/magic-translate [message_id]`: Translates a specific message. Defaults to the last message.
+    *   `/magic-translate-text <text>`: Translates any text you provide.
 
 ## Installation
 
@@ -23,75 +25,41 @@ https://github.com/bmen25124/SillyTavern-Magic-Translation
 
 ## How to Use
 
-1.  **Configure Connection Profile:**
-    *   Click the plug icon to open SillyTavern's API settings.
-    *   Create a connection profile. This profile will be used to send translation requests to the LLM.
+1.  **Configure a Connection Profile:**
+    *   Go to the **API Settings** tab (the plug icon on the top bar).
+    *   Set up a **Connection Profile** for the LLM you want to use for translation. This is the same as setting up a profile for a character to chat with.
 
 2.  **Configure Translation Settings:**
-    *   Go to the "Magic Translation" panel in the extension settings.
-    *   Select a Connection Profile from the dropdown.
-    *   Select desired Auto Mode or leave None if only manual translation is needed.
-    *   Choose the Target Language for translation.
+    *   Go to the **Extensions** tab (the plug icon on the right sidebar) and find the **Magic Translation** settings panel.
+    *   **Connection Profile:** Select the profile you configured in the previous step.
+    *   **Target Language:** Choose the language you want messages translated into.
+    *   **Auto Mode:** Select if you want automatic translation for incoming messages (`Responses`), outgoing messages (`Inputs`), or `Both`. Leave as `None` for manual-only translation.
 
-3.  **Customize Translation Prompt (Optional):**
-    *   Modify the default prompt in the text area to customize translation behavior.
-    *   Use `{{prompt}}` as a placeholder for the text to be translated.
-    *   Use `{{language}}` as a placeholder for the target language name.
+3.  **Translate Messages:**
+    *   **Manual:** Click the **globe icon** on any chat message to translate it.
+    *   **Automatic:** If Auto Mode is enabled, messages will be translated automatically based on your settings.
+    *   **Slash Command:** Use `/magic-translate` or `/magic-translate-text` in the chat input.
 
-4.  **Use Manual Translation:**
-    *   In the chat interface, click the globe icon on a message to translate it.
-    *   Use the slash command `/magic-translate {message id}` to translate a specific message by its ID, default to -1 (the latest message).
+## Settings Explained
 
-## Why not use the official Chat Translation extension?
-
-* The official `Chat Translation` extension uses APIs like Google, Yandex, etc. They are not as powerful as LLMs. They are too formal and not suitable for casual conversations.
-* There is only one powerful Translation API, which is [DeepL](https://www.deepl.com), but free users are limited to 500,000 characters per month. The cheapest plan is `$8.74` per month for 1,000,000 characters. On the other side, LLMs are mostly $0.3-$2 per 1,000,000 tokens. (token = 2-3~ letters)
-
-## Recommended LLMs
-
-Make sure the model speaks in your language. Some models might not allow NSFW content.
-
-*   **Google -> Gemini Flash:** Price-efficient. (input: $0.1, output: $0.4)
-*   **Cohere -> c4ai-aya-expanse-8b/c4ai-aya-expanse-32b:** Cheap enough (input: $0.5, output: $1.5)
-*   **openai-4o/claude-sonnet-3.x:** Little pricey. (input: $2.5/$3.5, output: $10/$15)
-*   Depending on your language, you can find [many other models](https://openrouter.ai/rankings/translation?view=week).
-
-## Settings
-
-*   **Connection Profile:** The connection profile from Connection Manager that will be used for translation.
+*   **Connection Profile:** The LLM profile used for translation.
+*   **Prompt Presets:** Manage different prompts for translation. You can create, rename, and delete presets. The `default` preset cannot be deleted.
+*   **Prompt:** The instruction template sent to the LLM. Key placeholders:
+    *   `{{prompt}}`: The text to be translated.
+    *   `{{language}}`: The target language name (e.g., "Spanish").
+    *   `{{chat}}`: An array of previous chat messages for context.
+*   **Filter Code Block:** If your prompt instructs the LLM to wrap the translation in a code block, this option will automatically extract the text from it.
+*   **Target Language:** The language to translate messages into.
 *   **Auto Mode:**
-    *   `None`: No automatic translation.
-    *   `Responses`: Automatically translate messages received from the LLM.
-    *   `Inputs`: Automatically translate messages you send to the LLM.
-    *   `Both`: Automatically translate both incoming and outgoing messages.
-*   **Target Language:** The language to translate the text into.
-*   **Prompt:** The prompt used to instruct the LLM to translate the text. Default:
-
-    ```text
-    Translate this text to {{language}}. You must format your response as a code block using triple backticks. Only include the translated text inside the code block, without any additional text:
-
-    \`\`\`
-    {{prompt}}
-    \`\`\`
-
-    Important: Your response must follow this exact format with the translation enclosed in code blocks (\`\`\`).
-    ```
-
-*   **Filter Code Block:** When checked, the extension extracts text between the \`\`\` code blocks.
-
-## Important Notes
-
-*   If you are using this extension, it's recommended to disable the "Auto Mode" feature of the official `Chat Translation` extension (if enabled) to avoid conflicts or unexpected behavior.
+    *   `None`: Manual translation only.
+    *   `Responses`: Automatically translate messages from the character.
+    *   `Inputs`: Automatically translate your messages before sending.
+    *   `Both`: Translate both incoming and outgoing messages.
 
 ## Troubleshooting
 
-*   **Extension Not Showing:**
-    *   Ensure the extension is properly installed and enabled in the Extensions tab.
-    *   Reload SillyTavern.
-*   **Translation Errors:**
-    *   Verify that the selected Connection Profile is configured correctly and has a valid API key.
-    *   Check the LLM's response for errors or issues.
-    *   Adjust the translation prompt if necessary.
-*   **Automatic Translation Not Working:**
-    *   Ensure the Auto Mode is set correctly.
-    *   Verify that the selected Connection Profile is valid.
+*   **Extension not showing:** Make sure it's installed and enabled in the Extensions tab, then reload SillyTavern.
+*   **Translation errors:**
+    *   Verify your selected **Connection Profile** is working correctly.
+    *   Check the prompt for any issues. Try restoring the default prompt.
+    *   Some LLMs may refuse to translate if the content violates their safety policies.
