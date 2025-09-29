@@ -36,6 +36,6 @@
     },
     "dependencies": {
         "handlebars": "^4.7.8",
-        "sillytavern-utils-lib": "^1.0.49"
+        "sillytavern-utils-lib": "^1.0.57"
     }
 }

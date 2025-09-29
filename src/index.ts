@@ -399,6 +399,7 @@ async function translateText(
     language: languageText,
     chat: structuredClone(context.chat).slice(0, messageId).reverse(),
     name: messageId !== undefined ? context.chat[messageId].name : name1,
+    message: messageId !== undefined ? context.chat[messageId] : undefined,
     ...extraParams,
   };
 
