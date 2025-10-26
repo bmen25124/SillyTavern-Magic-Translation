@@ -189,10 +189,29 @@ async function initUI() {
   extensionsMenu?.querySelector('#magic_translate_input')?.addEventListener('click', async () => {
     const sendTextarea = document.querySelector('#send_textarea') as HTMLTextAreaElement;
     if (sendTextarea) {
+      const selectionStart = sendTextarea.selectionStart;
+      const selectionEnd = sendTextarea.selectionEnd;
+      const selectedText = sendTextarea.value.substring(selectionStart, selectionEnd);
+
+      let textToTranslate = sendTextarea.value;
+      let isSelection = false;
+
+      if (selectedText) {
+        textToTranslate = selectedText;
+        isSelection = true;
+      }
+
       const settings = settingsManager.getSettings();
-      const translatedText = await translateText(sendTextarea.value, undefined, settings.internalLanguage);
+      const translatedText = await translateText(textToTranslate, undefined, settings.internalLanguage);
+
       if (translatedText) {
-        sendTextarea.value = translatedText;
+        if (isSelection) {
+          const fullText = sendTextarea.value;
+          sendTextarea.value =
+            fullText.substring(0, selectionStart) + translatedText + fullText.substring(selectionEnd);
+        } else {
+          sendTextarea.value = translatedText;
+        }
       }
     }
   });
