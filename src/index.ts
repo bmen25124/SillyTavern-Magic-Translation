@@ -278,55 +278,14 @@ async function initSettings() {
   });
 
   // Profile selection
-  const selectElement = settingsElement.find('.profile');
-
-  let refreshing = false;
-  const extensionBlockButton = settingsElement.find('.inline-drawer-toggle');
-  extensionBlockButton.on('click', function () {
-    refreshing = true;
-    // Remove all children except the empty option
-    const emptyOption = selectElement.find('option[value=""]');
-    selectElement.empty().append(emptyOption);
-
-    const currentProfileId = settings.profile;
-    let foundCurrentProfile = false;
-
-    for (const profile of context.extensionSettings.connectionManager!.profiles) {
-      // Only add profiles that have all required properties
-      if (profile.api && profile.preset) {
-        const option = $('<option></option>');
-        option.attr('value', profile.id);
-        option.text(profile.name || profile.id);
-        option.prop('selected', profile.id === currentProfileId);
-        selectElement.append(option);
-        if (profile.id === currentProfileId) {
-          foundCurrentProfile = true;
-        }
-      }
-    }
-
-    if (currentProfileId && !foundCurrentProfile) {
-      st_echo(
-        'warning',
-        `Previously selected profile "${currentProfileId}" no longer exists. Please select a new profile.`,
-      );
-      settings.profile = '';
+  context.ConnectionManagerRequestService.handleDropdown(
+    '.magic-translation-settings .profile',
+    settings.profile,
+    (profile) => {
+      settings.profile = profile?.id ?? '';
       settingsManager.saveSettings();
-    }
-
-    refreshing = false;
-  });
-
-  selectElement.on('change', function () {
-    if (refreshing) {
-      return;
-    }
-    const selected = selectElement.val() as string;
-    if (selected !== settings.profile) {
-      settings.profile = selected;
-      settingsManager.saveSettings();
-    }
-  });
+    },
+  );
 
   const sysSettingsButton = $('#sys-settings-button .drawer-toggle');
   const redirectSysSettings = settingsElement.find('.redirect_sys_settings');
