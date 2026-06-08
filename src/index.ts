@@ -381,15 +381,9 @@ async function translateText(
     ...extraParams,
   };
 
-  const prompt = context.substituteParams(
-    selectedPreset.content,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    allExtraParams,
-  );
+  const prompt = context.substituteParams(selectedPreset.content, {
+    dynamicMacros: allExtraParams,
+  });
 
   const template = Handlebars.compile(prompt, { noEscape: true });
   const renderedPrompt = template(allExtraParams);
