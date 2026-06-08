@@ -5,20 +5,7 @@ import { EventNames } from 'sillytavern-utils-lib/types';
 import { AutoModeOptions } from 'sillytavern-utils-lib/types/translate';
 import { name1, st_echo } from 'sillytavern-utils-lib/config';
 import { languageCodes } from './types/types.js';
-import * as Handlebars from 'handlebars';
-
-if (!Handlebars.helpers['slice']) {
-  Handlebars.registerHelper('slice', function (context, count) {
-    if (!Array.isArray(context)) return [];
-    return context.slice(count);
-  });
-}
-
-if (!Handlebars.helpers['add']) {
-  Handlebars.registerHelper('add', function (value1, value2) {
-    return value1 + value2;
-  });
-}
+import { renderPromptTemplate } from './prompt.js';
 
 interface PromptPreset {
   content: string;
@@ -381,12 +368,9 @@ async function translateText(
     ...extraParams,
   };
 
-  const prompt = context.substituteParams(selectedPreset.content, {
-    dynamicMacros: allExtraParams,
-  });
-
-  const template = Handlebars.compile(prompt, { noEscape: true });
-  const renderedPrompt = template(allExtraParams);
+  const renderedPrompt = renderPromptTemplate(selectedPreset.content, allExtraParams, (content) =>
+    context.substituteParams(content),
+  );
 
   try {
     const response = await sendGenerateRequest(selectedProfileId, renderedPrompt);
