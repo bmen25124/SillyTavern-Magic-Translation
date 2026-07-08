@@ -26,4 +26,19 @@ describe('renderPromptTemplate', () => {
 
     expect(rendered).toBe('1. second\n2. third\n');
   });
+
+  it('does not pass extension handlebars blocks to SillyTavern substitutions', () => {
+    const rendered = renderPromptTemplate(
+      '{{#each (slice chat -1)}}{{this.mes}}{{/each}}\n{{stMacro}}',
+      {
+        chat: [{ mes: 'translated context' }],
+      },
+      (content) => {
+        expect(content).not.toContain('{{#each');
+        return content.replace('{{stMacro}}', 'substituted');
+      },
+    );
+
+    expect(rendered).toBe('translated context\nsubstituted');
+  });
 });
